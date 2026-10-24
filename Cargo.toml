@@ -14,6 +14,19 @@ name = "boost_regex_rs_trim"
 diagnostics = []
 measurements = ["dep:libc"]
 
+# Driver serialization retains the existing on-the-wire JSON field order.
+[dependencies]
+hex = "0.4"
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+] }
+
 [target.'cfg(unix)'.dependencies]
 libc = { version = "0.2", optional = true }
 

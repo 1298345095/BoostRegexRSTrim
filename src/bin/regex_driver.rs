@@ -1,6 +1,7 @@
 //! Explicit test/measurement driver. Cargo never builds this for a library consumer.
 
 use boost_regex_rs_trim::{CharacterRules, Error, Limits, Match, Phase, Regex};
+use serde_json::{Value, json};
 use std::io::{self, BufRead};
 
 mod measurement {
@@ -32,46 +33,24 @@ mod measurement {
 
     #[cfg(all(windows, feature = "measurements"))]
     pub fn peak_rss_bytes() -> std::io::Result<u64> {
-        use std::ffi::c_void;
+        use windows_sys::Win32::System::ProcessStatus::{
+            K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS,
+        };
+        use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
-        // Windows PROCESS_MEMORY_COUNTERS: DWORD fields followed by SIZE_T fields.
-        #[repr(C)]
-        #[derive(Default)]
-        struct ProcessMemoryCounters {
-            cb: u32,
-            page_fault_count: u32,
-            peak_working_set_size: usize,
-            working_set_size: usize,
-            quota_peak_paged_pool_usage: usize,
-            quota_paged_pool_usage: usize,
-            quota_peak_non_paged_pool_usage: usize,
-            quota_non_paged_pool_usage: usize,
-            pagefile_usage: usize,
-            peak_pagefile_usage: usize,
-        }
-
-        #[link(name = "kernel32")]
-        unsafe extern "system" {
-            fn GetCurrentProcess() -> *mut c_void;
-            fn K32GetProcessMemoryInfo(
-                process: *mut c_void,
-                counters: *mut ProcessMemoryCounters,
-                size: u32,
-            ) -> i32;
-        }
-
-        let mut counters = ProcessMemoryCounters::default();
-        let size = u32::try_from(std::mem::size_of::<ProcessMemoryCounters>())
+        // SAFETY: PROCESS_MEMORY_COUNTERS contains only integer fields, so all
+        // zero bits represent valid values, matching the old Default struct.
+        let mut counters: PROCESS_MEMORY_COUNTERS = unsafe { std::mem::zeroed() };
+        let size = u32::try_from(std::mem::size_of::<PROCESS_MEMORY_COUNTERS>())
             .expect("Windows memory counter structure fits in DWORD");
-        // SAFETY: GetCurrentProcess returns the current process pseudo-handle,
-        // which needs no closing. counters has the documented C layout and its
-        // exact size, remains writable for the call, and is checked on return.
+        // SAFETY: GetCurrentProcess returns a pseudo-handle requiring no close;
+        // counters is writable and uses the native ABI layout and exact size.
         let success =
             unsafe { K32GetProcessMemoryInfo(GetCurrentProcess(), &raw mut counters, size) };
         if success == 0 {
             return Err(std::io::Error::last_os_error());
         }
-        Ok(counters.peak_working_set_size as u64)
+        Ok(counters.PeakWorkingSetSize as u64)
     }
 
     #[cfg(not(feature = "measurements"))]
@@ -83,76 +62,47 @@ mod measurement {
 }
 
 fn hex(bytes: &[u8]) -> String {
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(bytes.len() * 2);
-    for &byte in bytes {
-        out.push(char::from(DIGITS[usize::from(byte >> 4)]));
-        out.push(char::from(DIGITS[usize::from(byte & 15)]));
-    }
-    out
+    hex::encode(bytes)
 }
 
 fn unhex(value: &str) -> Result<Vec<u8>, String> {
-    let (pairs, remainder) = value.as_bytes().as_chunks::<2>();
-    if !remainder.is_empty() {
+    // Keep the original protocol errors instead of exposing hex crate errors.
+    if !value.len().is_multiple_of(2) {
         return Err("hex field must have even length".into());
     }
-    pairs
-        .iter()
-        .map(|pair| {
-            let digit = |b: u8| match b {
-                b'0'..=b'9' => Some(b - b'0'),
-                b'a'..=b'f' => Some(b - b'a' + 10),
-                b'A'..=b'F' => Some(b - b'A' + 10),
-                _ => None,
-            };
-            digit(pair[0])
-                .zip(digit(pair[1]))
-                .map(|(a, b)| a * 16 + b)
-                .ok_or_else(|| "invalid hex field".to_owned())
-        })
-        .collect()
+    hex::decode(value).map_err(|_| "invalid hex field".to_owned())
 }
 
-fn match_json(value: &Match) -> String {
+fn match_json(value: &Match) -> Value {
     let span = value.span();
     let captures = value
         .captures
         .iter()
-        .map(|range| {
-            range.as_ref().map_or_else(
-                || "null".to_owned(),
-                |range| format!("[{},{}]", range.start, range.end),
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",");
-    format!(
-        "{{\"span\":[{},{}],\"captures\":[{}]}}",
-        span.start, span.end, captures
-    )
+        .map(|range| range.as_ref().map(|range| [range.start, range.end]))
+        .collect::<Vec<_>>();
+    json!({
+        "span": [span.start, span.end],
+        "captures": captures
+    })
 }
 
-fn error_json(error: &Error) -> String {
+fn error_json(error: &Error) -> Value {
     let phase = match error.phase {
         Phase::Compile => "compile",
         Phase::Execute => "execute",
         Phase::CallerLimit => "limit",
         Phase::CharacterRules => "locale",
     };
-    let code = error
-        .code
-        .map_or_else(|| "null".to_owned(), |n| n.to_string());
-    let position = error
-        .position
-        .map_or_else(|| "null".to_owned(), |n| n.to_string());
-    format!(
-        "{{\"ok\":false,\"phase\":\"{phase}\",\"code\":{code},\"position\":{position},\"message_hex\":\"{}\"}}",
-        hex(error.raw_message())
-    )
+    json!({
+        "ok": false,
+        "phase": phase,
+        "code": error.code,
+        "position": error.position,
+        "message_hex": hex(error.raw_message())
+    })
 }
 
-fn request(line: &str, rules: &CharacterRules) -> Result<String, String> {
+fn request(line: &str, rules: &CharacterRules) -> Result<Value, String> {
     let fields = line.split('\t').collect::<Vec<_>>();
     if fields.len() != 4 {
         return Err("request must contain four tab-separated fields".into());
@@ -173,10 +123,10 @@ fn request(line: &str, rules: &CharacterRules) -> Result<String, String> {
                 fields[0] == "accounting_full",
             ));
         }
-        "compile" => Ok(format!(
-            "{{\"ok\":true,\"mark_count\":{}}}",
-            regex.mark_count()
-        )),
+        "compile" => Ok(json!({
+            "ok": true,
+            "mark_count": regex.mark_count()
+        })),
         "search" | "full" => {
             let result = if fields[0] == "full" {
                 regex.full_match(&input)
@@ -184,21 +134,24 @@ fn request(line: &str, rules: &CharacterRules) -> Result<String, String> {
                 regex.captures(&input)
             };
             result.map(|matched| {
-                format!(
-                    "{{\"ok\":true,\"match\":{}}}",
-                    matched.as_ref().map_or_else(|| "null".into(), match_json)
-                )
+                json!({
+                    "ok": true,
+                    "match": matched.as_ref().map(match_json)
+                })
             })
         }
         "find_all" => regex.find_all(&input).map(|matches| {
-            format!(
-                "{{\"ok\":true,\"matches\":[{}]}}",
-                matches.iter().map(match_json).collect::<Vec<_>>().join(",")
-            )
+            json!({
+                "ok": true,
+                "matches": matches.iter().map(match_json).collect::<Vec<_>>()
+            })
         }),
-        "replace" => regex
-            .replace(&input, &template)
-            .map(|output| format!("{{\"ok\":true,\"output_hex\":\"{}\"}}", hex(&output))),
+        "replace" => regex.replace(&input, &template).map(|output| {
+            json!({
+                "ok": true,
+                "output_hex": hex(&output)
+            })
+        }),
         _ => return Err("unknown operation".into()),
     };
     Ok(result.unwrap_or_else(|error| error_json(&error)))
@@ -222,7 +175,7 @@ fn mix_match(checksum: &mut u64, matched: Option<&Match>) {
     }
 }
 
-fn benchmark(measured: bool, fields: &[String], rules: &CharacterRules) -> Result<String, String> {
+fn benchmark(measured: bool, fields: &[String], rules: &CharacterRules) -> Result<Value, String> {
     if fields.len() != 5 {
         return Err(
             "Expected benchmark OPERATION PATTERN_HEX INPUT_HEX TEMPLATE_HEX ITERATIONS".into(),
@@ -296,19 +249,23 @@ fn benchmark(measured: bool, fields: &[String], rules: &CharacterRules) -> Resul
     }
     // End the operation interval before JSON formatting or reading memory stats.
     let elapsed = started.map(|start| start.elapsed().as_nanos());
-    let measurements = if let Some(elapsed) = elapsed {
+    let mut response = json!({
+        "ok": true,
+        "operation": operation,
+        "iterations": iterations,
+        "checksum": checksum,
+        "measured": measured
+    });
+    if let Some(elapsed) = elapsed {
         let peak = measurement::peak_rss_bytes().map_err(|error| error.to_string())?;
-        format!(",\"elapsed_ns\":{elapsed},\"peak_rss_bytes\":{peak}")
-    } else {
-        String::new()
-    };
-    Ok(format!(
-        "{{\"ok\":true,\"operation\":\"{operation}\",\"iterations\":{iterations},\"checksum\":{checksum},\"measured\":{measured}{measurements}}}"
-    ))
+        response["elapsed_ns"] = json!(elapsed);
+        response["peak_rss_bytes"] = json!(peak);
+    }
+    Ok(response)
 }
 
 #[cfg(feature = "diagnostics")]
-fn accounting(fields: &[String], rules: &CharacterRules) -> Result<String, String> {
+fn accounting(fields: &[String], rules: &CharacterRules) -> Result<Value, String> {
     if fields.len() != 3 || !matches!(fields[0].as_str(), "search" | "full") {
         return Err("Expected --accounting search|full PATTERN_HEX INPUT_HEX".into());
     }
@@ -322,22 +279,21 @@ fn accounting(fields: &[String], rules: &CharacterRules) -> Result<String, Strin
 }
 
 #[cfg(feature = "diagnostics")]
-fn accounting_result(regex: &Regex, input: &[u8], full: bool) -> String {
+fn accounting_result(regex: &Regex, input: &[u8], full: bool) -> Value {
     let diagnostic = regex.diagnose(input, full);
     let mut result = match diagnostic.result {
-        Ok(matched) => format!(
-            "{{\"ok\":true,\"match\":{}}}",
-            matched.as_ref().map_or_else(|| "null".into(), match_json)
-        ),
+        Ok(matched) => json!({
+            "ok": true,
+            "match": matched.as_ref().map(match_json)
+        }),
         Err(error) => error_json(&error),
     };
-    result.pop();
-    format!(
-        "{result},\"accounting\":{{\"state_count\":{},\"max_state_count\":{},\"blocks_remaining_after_cleanup\":{}}}}}",
-        diagnostic.state_count,
-        diagnostic.max_state_count,
-        diagnostic.blocks_remaining_after_cleanup
-    )
+    result["accounting"] = json!({
+        "state_count": diagnostic.state_count,
+        "max_state_count": diagnostic.max_state_count,
+        "blocks_remaining_after_cleanup": diagnostic.blocks_remaining_after_cleanup
+    });
+    result
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -361,12 +317,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             "--environment" => {
                 println!(
-                    "{{\"engine\":\"rust\",\"os\":\"{}\",\"arch\":\"{}\",\"debug_assertions\":{},\"measurements\":{},\"diagnostics\":{}}}",
-                    std::env::consts::OS,
-                    std::env::consts::ARCH,
-                    cfg!(debug_assertions),
-                    cfg!(feature = "measurements"),
-                    cfg!(feature = "diagnostics")
+                    "{}",
+                    json!({
+                        "engine": "rust",
+                        "os": std::env::consts::OS,
+                        "arch": std::env::consts::ARCH,
+                        "debug_assertions": cfg!(debug_assertions),
+                        "measurements": cfg!(feature = "measurements"),
+                        "diagnostics": cfg!(feature = "diagnostics")
+                    })
                 );
                 return Ok(());
             }
@@ -404,10 +363,84 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match request(line?.trim_end_matches('\r'), &rules) {
             Ok(output) => println!("{output}"),
             Err(message) => println!(
-                "{{\"ok\":false,\"phase\":\"protocol\",\"code\":null,\"position\":null,\"message_hex\":\"{}\"}}",
-                hex(message.as_bytes())
+                "{}",
+                json!({
+                    "ok": false,
+                    "phase": "protocol",
+                    "code": null,
+                    "position": null,
+                    "message_hex": hex(message.as_bytes())
+                })
             ),
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hex_codec_and_protocol_errors_remain_stable() {
+        assert_eq!(hex(b"\x00\xffA"), "00ff41");
+        assert_eq!(unhex("00Ff41").unwrap(), b"\x00\xffA");
+        assert_eq!(unhex("123").unwrap_err(), "hex field must have even length");
+        assert_eq!(unhex("gg").unwrap_err(), "invalid hex field");
+    }
+
+    #[test]
+    fn exact_wire_json_key_order_and_nulls() {
+        let rules = CharacterRules::default();
+        assert_eq!(
+            request("compile\t286129\t\t", &rules).unwrap().to_string(),
+            r#"{"ok":true,"mark_count":1}"#
+        );
+        assert_eq!(
+            request("search\t61\t7861\t", &rules).unwrap().to_string(),
+            r#"{"ok":true,"match":{"span":[1,2],"captures":[[1,2]]}}"#
+        );
+        assert_eq!(
+            request("full\t61\t78\t", &rules).unwrap().to_string(),
+            r#"{"ok":true,"match":null}"#
+        );
+        assert_eq!(
+            request("replace\t61\t7861\tff", &rules)
+                .unwrap()
+                .to_string(),
+            r#"{"ok":true,"output_hex":"78ff"}"#
+        );
+        assert_eq!(
+            json!({
+                "ok": false,
+                "phase": "protocol",
+                "code": null,
+                "position": null,
+                "message_hex": hex(b"invalid hex field")
+            })
+            .to_string(),
+            r#"{"ok":false,"phase":"protocol","code":null,"position":null,"message_hex":"696e76616c696420686578206669656c64"}"#
+        );
+        let invalid = request("compile\t28\t\t", &rules).unwrap().to_string();
+        assert!(
+            invalid.starts_with(
+                r#"{"ok":false,"phase":"compile","code":8,"position":1,"message_hex":""#
+            )
+        );
+    }
+
+    #[cfg(feature = "diagnostics")]
+    #[test]
+    fn accounting_fields_follow_the_unmodified_result() {
+        let value = request("accounting_search\t61\t61\t", &CharacterRules::default()).unwrap();
+        let wire = value.to_string();
+        assert!(
+            wire.starts_with(
+                r#"{"ok":true,"match":{"span":[0,1],"captures":[[0,1]]},"accounting":{"#
+            )
+        );
+        assert!(wire.contains(r#""state_count":"#));
+        assert!(wire.contains(r#""max_state_count":"#));
+        assert!(wire.contains(r#""blocks_remaining_after_cleanup":"#));
+    }
 }
