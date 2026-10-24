@@ -67,26 +67,27 @@ def load_workloads(path):
     return values
 
 
-def command(executable, item, iterations, measured, *, must_exist=False):
-    validate_workload(item, set())
-    if type(iterations) is not int or iterations < 1:
-        raise ValueError("Benchmark iterations must be a positive integer")
+def command(executable, measured, *, must_exist=False):
+    """Build argv without ever accepting workload or iteration fields."""
     if type(measured) is not bool:
         raise ValueError("Benchmark measurement mode must be a boolean")
     executable = driver_path(executable, must_exist=must_exist)
-    # The executable and the mode are the only process arguments; workload
-    # bytes and iteration counts travel as data on stdin, not as argv.
     return [str(executable), "--benchmark-stdin" if measured else "--benchmark-check-stdin"]
 
 
 def workload_input(item, iterations):
+    """Validate and encode the workload solely as protocol data for stdin."""
+    validate_workload(item, set())
+    if type(iterations) is not int or iterations < 1:
+        raise ValueError("Benchmark iterations must be a positive integer")
     return "\t".join((item["operation"], item["pattern_hex"], item["input_hex"],
                       item["template_hex"], str(iterations))) + "\n"
 
 
 def invoke(executable, item, iterations, measured, timeout):
-    argv = command(executable, item, iterations, measured, must_exist=True)
-    result = subprocess.run(argv, cwd=ROOT, shell=False, input=workload_input(item, iterations),
+    payload = workload_input(item, iterations)
+    argv = command(executable, measured, must_exist=True)
+    result = subprocess.run(argv, cwd=ROOT, shell=False, input=payload,
                             text=True, capture_output=True, check=True, timeout=timeout)
     value = json.loads(result.stdout)
     if not value.get("ok"):
@@ -188,8 +189,8 @@ def prepare_report(args, metadata, workloads):
             ["cargo", "build", "--release", "--features", "measurements", "--bin", "regex_driver"],
         ],
         "planned_measurement_commands": [
-            {"workload": item["name"], "reference": command(reference, item, args.iterations, True),
-             "rust": command(rust, item, args.iterations, True),
+            {"workload": item["name"], "reference": command(reference, True),
+             "rust": command(rust, True),
              "stdin": workload_input(item, args.iterations)} for item in workloads
         ],
         "checks": [], "samples": [], "summary": [],
