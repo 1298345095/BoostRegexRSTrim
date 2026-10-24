@@ -28,7 +28,12 @@ artifact identities, and common budget-boundary observations.
 | Integration into the user's external application | Deferred under ADR-0002 |
 
 This acceptance covers the recorded code snapshot and the scenarios below.
-Subsequent documentation-only commits preserve that tested implementation.
+The documentation snapshot `d270085` preserves that tested implementation.
+Later validation-tool hardening leaves the Rust implementation and retained
+`boost/` source unchanged, but refactors the C++ test driver and Python harnesses.
+The hashes and run above remain the original acceptance evidence; they must not
+be read as executable hashes for a later rebuild. Each later commit's native
+results are attached to its own Functional compatibility workflow run.
 
 ## Native matrix
 

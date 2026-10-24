@@ -11,6 +11,8 @@ import statistics
 import subprocess
 import sys
 
+from tool_paths import driver_path, project_file, report_path
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SUFFIX = ".exe" if os.name == "nt" else ""
@@ -38,24 +40,30 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
+def validate_workload(item, names):
+    if not isinstance(item, dict) or set(item) != {"name", "operation", "pattern_hex", "input_hex", "template_hex"}:
+        raise ValueError("A workload needs exactly name, operation, pattern_hex, input_hex and template_hex")
+    if not isinstance(item["name"], str) or not item["name"] or item["name"] in names:
+        raise ValueError("Workload names must be unique nonempty strings")
+    names.add(item["name"])
+    if item["operation"] not in ("compile", "search", "full", "replace"):
+        raise ValueError("Unsupported measurement operation")
+    for key in ("pattern_hex", "input_hex", "template_hex"):
+        validate_hex(item[key])
+
+
+def validate_hex(value):
+    if not isinstance(value, str) or len(value) % 2 or any(c not in "0123456789abcdefABCDEF" for c in value):
+        raise ValueError("Workload byte fields must use contiguous, even-length hexadecimal")
+
+
 def load_workloads(path):
-    values = json.loads(path.read_text(encoding="utf-8")) if path else WORKLOADS
+    values = json.loads(project_file(path).read_text(encoding="utf-8")) if path else WORKLOADS
     if not isinstance(values, list) or not values:
         raise ValueError("Workloads must be a nonempty JSON array")
     names = set()
     for item in values:
-        if not isinstance(item, dict) or set(item) != {"name", "operation", "pattern_hex", "input_hex", "template_hex"}:
-            raise ValueError("A workload needs exactly name, operation, pattern_hex, input_hex and template_hex")
-        if not isinstance(item["name"], str) or not item["name"] or item["name"] in names:
-            raise ValueError("Workload names must be unique nonempty strings")
-        names.add(item["name"])
-        if item["operation"] not in ("compile", "search", "full", "replace"):
-            raise ValueError("Unsupported measurement operation")
-        for key in ("pattern_hex", "input_hex", "template_hex"):
-            value = item[key]
-            if not isinstance(value, str) or len(value) % 2 or any(c not in "0123456789abcdefABCDEF" for c in value):
-                raise ValueError("Workload byte fields must use contiguous, even-length hexadecimal")
-            bytes.fromhex(value)
+        validate_workload(item, names)
     return values
 
 
@@ -83,7 +91,7 @@ def tool_version(argv):
             "stdout": result.stdout, "stderr": result.stderr}
 
 
-def main():
+def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--dry-run", action="store_true", help="Default: emit the plan without starting either engine")
@@ -106,13 +114,36 @@ def main():
         parser.error("iterations, samples and timeout must be positive")
     if args.run and (not args.designated_machine or not args.designated_machine.strip()):
         parser.error("ADR-0004 requires --designated-machine NAME before measurements; no measurement was started")
-    reference = args.reference.resolve()
-    rust = args.rust.resolve()
-    build_info = args.reference_build_info or reference.parent / "build-info-baseline.json"
-    metadata = json.loads(build_info.read_text(encoding="utf-8")) if build_info.is_file() else None
-    workloads = load_workloads(args.workloads)
+    try:
+        # Dry runs may name binaries that have not been built yet. All modes
+        # still confine executable selection to this checkout's build artifacts.
+        args.reference = driver_path(args.reference, must_exist=False)
+        args.rust = driver_path(args.rust, must_exist=False)
+        args.report = report_path(args.report)
+        if args.workloads:
+            args.workloads = project_file(args.workloads)
+        if args.reference_build_info:
+            args.reference_build_info = project_file(args.reference_build_info)
+    except (ValueError, OSError) as error:
+        parser.error(str(error))
+    return parser, args
+
+
+def load_build_info(args):
+    path = project_file(args.reference_build_info or args.reference.parent / "build-info-baseline.json",
+                        must_exist=False)
+    if not path.is_file():
+        return None
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(metadata, dict):
+        raise ValueError("Reference build information must be a JSON object")
+    return metadata
+
+
+def prepare_report(args, metadata, workloads):
+    reference, rust = args.reference, args.rust
     mode = "measured" if args.run else "plumbing-check" if args.check else "dry-run"
-    report = {
+    return {
         "schema_version": 1, "mode": mode,
         "performance_acceptance": "pending_user_baselines_and_thresholds",
         "designated_machine": args.designated_machine,
@@ -154,73 +185,111 @@ def main():
             "comparison": "Same workload bytes and iterations on one designated machine; no cross-machine absolute comparison",
         },
     }
-    try:
+
+
+def validate_release_build(args, metadata):
+    if not metadata or metadata.get("profile") != "release" or metadata.get("raw_error_observer") is not None:
+        raise ValueError("Measurements require the recorded uninstrumented C++ --baseline --profile release build")
+    if metadata.get("executable_sha256") != digest(args.reference):
+        raise ValueError("The selected C++ executable must match its recorded build SHA-256")
+    build_command = args.rust_build_command.split()
+    if not build_command or Path(build_command[0]).name != "cargo" or "--release" not in build_command:
+        raise ValueError("Record a comparable Rust release build command with --rust-build-command")
+
+
+def record_environments(args, report):
+    report["toolchains"] = {"rustc": tool_version(["rustc", "--version", "--verbose"]),
+                            "cargo": tool_version(["cargo", "--version"])}
+    for name, executable in (("reference", args.reference), ("rust", args.rust)):
+        report[name + "_environment"] = json.loads(
+            subprocess.check_output([str(executable), "--environment"], text=True, timeout=args.timeout))
+    rust = report["rust_environment"]
+    if args.run and (rust.get("debug_assertions") is not False or
+                     rust.get("measurements") is not True or rust.get("diagnostics") is not False):
+        raise ValueError("Measurements require a Rust --release --features measurements build without diagnostics")
+
+
+def check_workload(args, item):
+    baseline = invoke(command(args.reference, item, 2, False), args.timeout)
+    implementation = invoke(command(args.rust, item, 2, False), args.timeout)
+    if baseline != implementation or baseline.get("measured") is not False:
+        raise ValueError("Plumbing/checksum mismatch for " + item["name"] + ": " +
+                         json.dumps({"reference": baseline, "rust": implementation}))
+    if any(key in baseline for key in ("elapsed_ns", "peak_rss_bytes")):
+        raise ValueError("A plumbing check must not collect timing or memory measurements")
+    return {"workload": item["name"], "result": baseline}
+
+
+def validate_sample(response, item, iterations):
+    if (response.get("measured") is not True or
+            not isinstance(response.get("elapsed_ns"), int) or response["elapsed_ns"] < 0 or
+            response.get("operation") != item["operation"] or response.get("iterations") != iterations):
+        raise ValueError("Missing engine timing result")
+    if not isinstance(response.get("peak_rss_bytes"), int) or response["peak_rss_bytes"] < 1:
+        raise ValueError("Missing process peak-memory result")
+
+
+def sample_workload(args, item, report):
+    for sample in range(args.samples):
+        order = [("reference", args.reference), ("rust", args.rust)]
+        if sample % 2:
+            order.reverse()
+        responses = {}
+        for engine, executable in order:
+            response = invoke(command(executable, item, args.iterations, True), args.timeout)
+            validate_sample(response, item, args.iterations)
+            report["samples"].append({"workload": item["name"], "sample": sample,
+                                      "engine": engine, **response})
+            responses[engine] = response
+        if responses["reference"]["checksum"] != responses["rust"]["checksum"]:
+            raise ValueError("Measurement output checksums diverged for " + item["name"])
+
+
+def summarize_samples(args, report):
+    for item in report["workloads"]:
+        for engine in ("reference", "rust"):
+            samples = [s for s in report["samples"] if s["workload"] == item["name"] and s["engine"] == engine]
+            elapsed = [s["elapsed_ns"] / args.iterations for s in samples]
+            report["summary"].append({"workload": item["name"], "engine": engine,
+                                      "ns_per_iteration_median": statistics.median(elapsed),
+                                      "ns_per_iteration_min": min(elapsed),
+                                      "ns_per_iteration_max": max(elapsed),
+                                      "peak_rss_bytes_max": max(s["peak_rss_bytes"] for s in samples)})
+
+
+def validate_and_run(args, report):
+    if args.run:
+        validate_release_build(args, report["engines"]["reference"]["build_info"])
+    if not (args.run or args.check):
+        report["status"] = "plan_only"
+        return
+    if not args.reference.is_file() or not args.rust.is_file():
+        raise ValueError("Build both explicitly selected engine executables before checking or measuring")
+    record_environments(args, report)
+    for item in report["workloads"]:
+        report["checks"].append(check_workload(args, item))
         if args.run:
-            if not metadata or metadata.get("profile") != "release" or metadata.get("raw_error_observer") is not None:
-                raise ValueError("Measurements require the recorded uninstrumented C++ --baseline --profile release build")
-            if metadata.get("executable_sha256") != digest(reference):
-                raise ValueError("The selected C++ executable must match its recorded build SHA-256")
-            if Path(args.rust_build_command.split()[0]).name != "cargo" or "--release" not in args.rust_build_command.split():
-                raise ValueError("Record a comparable Rust release build command with --rust-build-command")
-        if args.run or args.check:
-            if not reference.is_file() or not rust.is_file():
-                raise ValueError("Build both explicitly selected engine executables before checking or measuring")
-            report["toolchains"] = {"rustc": tool_version(["rustc", "--version", "--verbose"]),
-                                    "cargo": tool_version(["cargo", "--version"])}
-            report["reference_environment"] = json.loads(
-                subprocess.check_output([str(reference), "--environment"], text=True, timeout=args.timeout))
-            report["rust_environment"] = json.loads(
-                subprocess.check_output([str(rust), "--environment"], text=True, timeout=args.timeout))
-            if args.run and (report["rust_environment"].get("debug_assertions") is not False or
-                             report["rust_environment"].get("measurements") is not True or
-                             report["rust_environment"].get("diagnostics") is not False):
-                raise ValueError("Measurements require a Rust --release --features measurements build without diagnostics")
-            for item in workloads:
-                baseline = invoke(command(reference, item, 2, False), args.timeout)
-                implementation = invoke(command(rust, item, 2, False), args.timeout)
-                if baseline != implementation or baseline.get("measured") is not False:
-                    raise ValueError("Plumbing/checksum mismatch for " + item["name"] + ": " +
-                                     json.dumps({"reference": baseline, "rust": implementation}))
-                if any(key in baseline for key in ("elapsed_ns", "peak_rss_bytes")):
-                    raise ValueError("A plumbing check must not collect timing or memory measurements")
-                report["checks"].append({"workload": item["name"], "result": baseline})
-                if not args.run:
-                    continue
-                for sample in range(args.samples):
-                    order = [("reference", reference), ("rust", rust)]
-                    if sample % 2:
-                        order.reverse()
-                    responses = {}
-                    for engine, executable in order:
-                        response = invoke(command(executable, item, args.iterations, True), args.timeout)
-                        if (response.get("measured") is not True or
-                                not isinstance(response.get("elapsed_ns"), int) or response["elapsed_ns"] < 0 or
-                                response.get("operation") != item["operation"] or
-                                response.get("iterations") != args.iterations):
-                            raise ValueError("Missing engine timing result")
-                        if not isinstance(response.get("peak_rss_bytes"), int) or response["peak_rss_bytes"] < 1:
-                            raise ValueError("Missing process peak-memory result")
-                        report["samples"].append({"workload": item["name"], "sample": sample,
-                                                  "engine": engine, **response})
-                        responses[engine] = response
-                    if responses["reference"]["checksum"] != responses["rust"]["checksum"]:
-                        raise ValueError("Measurement output checksums diverged for " + item["name"])
-            for item in workloads if args.run else []:
-                for engine in ("reference", "rust"):
-                    samples = [s for s in report["samples"] if s["workload"] == item["name"] and s["engine"] == engine]
-                    elapsed = [s["elapsed_ns"] / args.iterations for s in samples]
-                    report["summary"].append({"workload": item["name"], "engine": engine,
-                                              "ns_per_iteration_median": statistics.median(elapsed),
-                                              "ns_per_iteration_min": min(elapsed),
-                                              "ns_per_iteration_max": max(elapsed),
-                                              "peak_rss_bytes_max": max(s["peak_rss_bytes"] for s in samples)})
-        report["status"] = "passed" if args.run or args.check else "plan_only"
+            sample_workload(args, item, report)
+    if args.run:
+        summarize_samples(args, report)
+    report["status"] = "passed"
+
+
+def main():
+    parser, args = parse_arguments()
+    try:
+        report = prepare_report(args, load_build_info(args), load_workloads(args.workloads))
+    except (ValueError, OSError) as error:
+        parser.error(str(error))
+    try:
+        validate_and_run(args, report)
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         report["status"] = "failed"
         report["error"] = str(error)
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(f"{mode}: {report['status']}; report {args.report}")
+    output = report_path(args.report)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    report_path(output).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(f"{report['mode']}: {report['status']}; report {output}")
     if report["status"] == "failed":
         print(report["error"], file=sys.stderr)
         return 1

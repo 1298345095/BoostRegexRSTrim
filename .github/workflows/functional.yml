@@ -41,41 +41,45 @@ jobs:
       CARGO_BUILD_TARGET: ${{ matrix.target }}
       RUST_BACKTRACE: '1'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable action
         with:
+          toolchain: stable
           targets: ${{ matrix.target }}
           components: rustfmt, clippy
       - name: Select MSVC target
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         with:
           arch: ${{ matrix.msvc_arch }}
       - name: Record Rust toolchain
         run: rustc --version --verbose
       - name: Check formatting
         run: cargo fmt --all -- --check
+      - name: Test validation-tool boundaries and workload preservation
+        run: python -m unittest discover -s tools -p "test_*.py"
       - name: Check library and examples without C++ reference
-        run: cargo check --all-targets
+        run: cargo check --locked --all-targets
       - name: Check optional diagnostic and measurement tooling
-        run: cargo check --all-targets --all-features
+        run: cargo check --locked --all-targets --all-features
       - name: Standalone consumer without a C++ compiler
         env:
           CXX: missing-cxx-compiler
-        run: cargo run --manifest-path tests/consumer/Cargo.toml --target ${{ matrix.target }} --offline
+        run: cargo run --locked --manifest-path tests/consumer/Cargo.toml --target ${{ matrix.target }} --offline
       - name: Unit, integration, sharing, and caller-limit tests
-        run: cargo test --all-targets
+        run: cargo test --locked --all-targets
       - name: Documentation tests
-        run: cargo test --doc
+        run: cargo test --locked --doc
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - name: Build byte protocol caller
-        run: cargo build --bin regex_driver
+        run: cargo build --locked --bin regex_driver
       - name: Build observed C++ reference
         run: python tools/build_reference.py
       - name: Build uninstrumented baseline
@@ -89,16 +93,16 @@ jobs:
       - name: Validate performance tooling without measurements
         run: python tools/benchmark.py --check --reference target/reference/reference-baseline${{ matrix.exe }} --rust target/${{ matrix.target }}/debug/regex_driver${{ matrix.exe }} --report reports/benchmark-plumbing.json
       - name: Build accounting diagnostic caller
-        run: cargo build --features diagnostics --bin regex_driver
+        run: cargo build --locked --features diagnostics --bin regex_driver
       - name: Rust computation-accounting boundary tests
-        run: cargo test --features diagnostics --test accounting
+        run: cargo test --locked --features diagnostics --test accounting
       - name: Compare original computation accounting and boundaries
         run: python tools/accounting_differential.py --reference target/reference/reference${{ matrix.exe }} --rust target/${{ matrix.target }}/debug/regex_driver${{ matrix.exe }} --report reports/accounting.json
       - name: Retained C++ source unchanged
-        run: git diff --exit-code -- boost
+        run: git diff --exit-code e3a51687d8b81e1e8657c86ed3451a6e04ee38d4 -- boost
       - name: Upload functional evidence and environment
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: functional-${{ matrix.target }}
           path: |

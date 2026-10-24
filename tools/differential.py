@@ -10,6 +10,8 @@ import random
 import subprocess
 from pathlib import Path
 
+from tool_paths import driver_path, report_path
+
 
 def corpus(seed, random_cases):
     patterns = [
@@ -51,12 +53,24 @@ def corpus(seed, random_cases):
     inputs = [b"", b"a", b"b", b"ab", b"abc", b"aab", b"aaabbb", b"baaaac", b"abab", b"ac", b"abx",
               b"a\nb", b"\r\n", b"a\r\n\f", b"word a", b"Ae aE ae", b"a\x00\xff", b"\x00\xff", b"AAb"]
     templates = [b"<$&:$1:$2>", b"$`|$'|$+|$^N", b"$+{x}\\U$&\\E", b"\xff\x00$$\\n"]
+    yield from fixed_cases(patterns, inputs, templates)
+    # This seed exists only to replay the test corpus; no security decision or
+    # identifier depends on the pseudorandom values.
+    rng = random.Random(seed)
+    yield from generated_cases(rng, random_cases, templates)
+    yield from malformed_cases(rng, random_cases)
+    yield from integer_boundary_cases()
+
+
+def fixed_cases(patterns, inputs, templates):
     for pattern in patterns:
         yield "compile", pattern, b"", b""
         for data in inputs:
             for operation in ("search", "full", "find_all", "replace"):
                 yield operation, pattern, data, templates[(len(pattern) + len(data)) % len(templates)] if operation == "replace" else b""
-    rng = random.Random(seed)
+
+
+def generated_cases(rng, random_cases, templates):
     atoms = [b"a", b"b", b".", b"[ab]", b"[^a]", b"\\d", b"\\w", b"(a)", b"(?:ab|a)", b"(?=a)a", b"(?!b).", b"\\x00", b"\\b"]
     quantifiers = [b"", b"?", b"*", b"+", b"{1,3}", b"*?", b"+?", b"?+", b"*+"]
     for _ in range(random_cases):
@@ -67,12 +81,18 @@ def corpus(seed, random_cases):
         data = bytes(rng.choice(b"aabB12 \n\x00\xff") for _ in range(rng.randrange(16)))
         for operation in ("search", "full", "find_all", "replace"):
             yield operation, pattern, data, rng.choice(templates) if operation == "replace" else b""
+
+
+def malformed_cases(rng, random_cases):
     # Arbitrary bytes exercise raw diagnostic context and target char signedness
     # without executing potentially nonprogressing accepted expressions.
     malformed_alphabet = b"[](){}?*+|\\01239<>=!:.-'ismxabc\x00\x7f\x80\xff"
     for _ in range(min(random_cases, 512)):
         pattern = bytes(rng.choice(malformed_alphabet) for _ in range(rng.randrange(32)))
         yield "compile", pattern, b"", b""
+
+
+def integer_boundary_cases():
     # The native Windows integer helper checks its threshold after arithmetic.
     # Keep its boundary behavior visible in the native matrix, including formatter casts.
     for number in (b"9223372036854775806", b"9223372036854775807", b"9223372036854775808", b"9223372036854775809"):
@@ -82,8 +102,10 @@ def corpus(seed, random_cases):
 
 
 def run_driver(executable, cases, extra):
+    executable = driver_path(executable)
     requests = "".join("\t".join((op, pattern.hex(), data.hex(), template.hex())) + "\n" for op, pattern, data, template in cases)
-    result = subprocess.run([str(executable), *extra], input=requests, text=True, capture_output=True, timeout=180)
+    result = subprocess.run([str(executable), *extra], input=requests, text=True,
+                            capture_output=True, timeout=180, shell=False)
     if result.returncode:
         raise RuntimeError(f"{executable} exited {result.returncode}: {result.stderr[-4000:]}")
     lines = result.stdout.splitlines()
@@ -102,23 +124,32 @@ def main():
     parser.add_argument("--locale")
     parser.add_argument("--lcid")
     args = parser.parse_args()
+    try:
+        args.reference = driver_path(args.reference)
+        args.rust = driver_path(args.rust)
+        args.report = report_path(args.report)
+    except ValueError as error:
+        parser.error(str(error))
+    if args.random_cases < 0:
+        parser.error("random-cases must be nonnegative")
     extra = (["--locale", args.locale] if args.locale else []) + (["--lcid", args.lcid] if args.lcid else [])
     cases = list(corpus(args.seed, args.random_cases))
-    expected = run_driver(args.reference.resolve(), cases, extra)
-    actual = run_driver(args.rust.resolve(), cases, extra)
+    expected = run_driver(args.reference, cases, extra)
+    actual = run_driver(args.rust, cases, extra)
     mismatches = []
     for index, (case, reference, rust) in enumerate(zip(cases, expected, actual)):
         if reference != rust:
             op, pattern, data, template = case
             mismatches.append({"case": index, "operation": op, "pattern_hex": pattern.hex(), "input_hex": data.hex(), "template_hex": template.hex(), "reference": reference, "rust": rust})
-    environment = json.loads(subprocess.check_output([str(args.reference.resolve()), *extra, "--environment"], text=True))
-    rust_environment = json.loads(subprocess.check_output([str(args.rust.resolve()), *extra, "--environment"], text=True))
+    environment = json.loads(subprocess.check_output([str(args.reference), *extra, "--environment"], text=True, timeout=30, shell=False))
+    rust_environment = json.loads(subprocess.check_output([str(args.rust), *extra, "--environment"], text=True, timeout=30, shell=False))
     report = {"schema": 1, "kind": "functional-compatibility", "seed": args.seed, "random_cases": args.random_cases,
               "cases": len(cases), "mismatch_count": len(mismatches), "mismatches": mismatches,
               "reference_environment": environment, "host": platform.platform(),
               "rust_environment": rust_environment,
               "executables_sha256": {"reference": hashlib.sha256(args.reference.read_bytes()).hexdigest(), "rust": hashlib.sha256(args.rust.read_bytes()).hexdigest()},
               "runner_image": os.environ.get("ImageVersion"), "performance_acceptance": "pending designated machine"}
+    args.report = report_path(args.report)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"{len(cases)} comparisons; {len(mismatches)} mismatches; report {args.report}")
