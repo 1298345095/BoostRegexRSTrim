@@ -662,31 +662,15 @@ mod unix {
 #[cfg(windows)]
 #[allow(unsafe_code)]
 mod windows {
-    use std::ffi::{c_char, c_int};
+    // Use the exact same ANSI functions; the selected API and failure behavior
+    // are part of the compatibility contract for Windows byte rules.
+    pub(super) use windows_sys::Win32::Globalization::{
+        GetStringTypeExA, GetUserDefaultLCID, LCMapStringA,
+    };
 
     pub(super) const LOWERCASE: u32 = 0x100;
     pub(super) const UPPERCASE: u32 = 0x200;
     const SORTKEY: u32 = 0x400;
-
-    #[link(name = "kernel32")]
-    unsafe extern "system" {
-        pub(super) fn GetUserDefaultLCID() -> u32;
-        pub(super) fn LCMapStringA(
-            locale: u32,
-            flags: u32,
-            source: *const c_char,
-            source_size: c_int,
-            destination: *mut c_char,
-            destination_size: c_int,
-        ) -> c_int;
-        pub(super) fn GetStringTypeExA(
-            locale: u32,
-            info: u32,
-            source: *const c_char,
-            size: c_int,
-            types: *mut u16,
-        ) -> c_int;
-    }
 
     pub(super) fn default_lcid() -> u32 {
         // SAFETY: GetUserDefaultLCID has no preconditions or pointer arguments.
