@@ -1,0 +1,2122 @@
+{
+  "schema": 1,
+  "kind": "six-target-native-functional-acceptance",
+  "date_utc": "2026-10-24",
+  "implementation_commit": "078a299fac1ef2993deedcba649aef74acd424c9",
+  "implementation_tree": "4f970930b8178391f68d50180eaffe930c8cfcec",
+  "reference_base_commit": "e3a51687d8b81e1e8657c86ed3451a6e04ee38d4",
+  "workflow_run_id": 40066443631,
+  "workflow_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631",
+  "pull_request_url": "https://github.com/1298345095/BoostRegexRSTrim/pull/26",
+  "conclusion": "success",
+  "performance_measured": false,
+  "performance_acceptance": "pending_user_designated_machine_baselines_and_thresholds",
+  "external_program_integration": "deferred",
+  "matrix": [
+    {
+      "target": "aarch64-apple-darwin",
+      "runner": "macos-15",
+      "job_id": 120790602216,
+      "job_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631/job/120790602216",
+      "conclusion": "success",
+      "rust_toolchain": {
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "binary": "rustc",
+        "commit-hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "commit-date": "2026-10-13",
+        "host": "aarch64-apple-darwin",
+        "release": "1.99.1",
+        "LLVM version": "23.1.1"
+      },
+      "runner_image": "20260907.0337.1",
+      "host": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "cpp_compiler": {
+        "command": [
+          "c++",
+          "--version"
+        ],
+        "status": 0,
+        "stdout": "Apple clang version 17.0.0 (clang-1700.0.13.5)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin\n",
+        "stderr": ""
+      },
+      "reference_build_command": [
+        "c++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-pthread",
+        "-I/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/raw-error-observer",
+        "-I/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim",
+        "-DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1",
+        "-DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1",
+        "/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/tools/reference.cpp",
+        "-o",
+        "/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/reference"
+      ],
+      "reference_environment": {
+        "pointer_bits": 64,
+        "char_signed": true,
+        "traits": "cpp_locale",
+        "locale_name_hex": "43",
+        "clang_version_hex": "31372e302e302028636c616e672d313730302e302e31332e3529",
+        "cplusplus": 201703,
+        "state_limit": 100000000,
+        "block_size": 4096,
+        "max_blocks": 1024,
+        "creator_depth": 100,
+        "saved_state_bytes": {
+          "base": 8,
+          "capture": 40,
+          "position": 24,
+          "assertion": 32,
+          "repeater": 48,
+          "extra_block": 24,
+          "single_repeat": 32,
+          "recursion": 184,
+          "case": 16
+        },
+        "match_results_bytes": 80,
+        "raw_error_observer": true
+      },
+      "rust_environment": {
+        "engine": "rust",
+        "os": "macos",
+        "arch": "aarch64",
+        "debug_assertions": true,
+        "measurements": false,
+        "diagnostics": false
+      },
+      "reference_source_files_sha256": {
+        "boost/regex/config.hpp": "b720b3de7900aaafaeee0533a1776c002e9b473e6eac0927771babba0bcbbc89",
+        "boost/regex/pattern_except.hpp": "2c158886dc470114ae0b83bee3ef2b6063829ef78b0d05c9110938aa2b66fb76",
+        "boost/regex/regex_traits.hpp": "7c5618ea5485019f001783e12d398078f7df31af70afff4fe4c02c568fc019b8",
+        "boost/regex/v5/basic_regex.hpp": "93b7932e3229e2ffce8adfda3c01f372b0fa7aaaa76e3b2124417d075f844f92",
+        "boost/regex/v5/basic_regex_creator.hpp": "9cb43d923e2d721d11ff101395fd6aa59d2f509aafef0ae592b0d88bb97e72ee",
+        "boost/regex/v5/basic_regex_parser.hpp": "280fa67a24e38682c70a3f6f54d580a8ac0d9dc9d2e02367041a2b8b257bdcac",
+        "boost/regex/v5/cpp_regex_traits.hpp": "ec4d20ceeb5aea53325e7b1d64ea1733d5f824a5f80a0c96852e3d833750bfde",
+        "boost/regex/v5/error_type.hpp": "56f40623c1ca6439a4684b874b132ac137ec69b5442bc320a26ba81341a099fe",
+        "boost/regex/v5/match_flags.hpp": "c42c27220a95c8a0adf9736e83990a804e2a6fceb9a70b75e7dc00836f81e61d",
+        "boost/regex/v5/match_results.hpp": "5cb7ed8370723619af78a308267c30f92ced895b1b78d4f081a6bdf57fb52311",
+        "boost/regex/v5/mem_block_cache.hpp": "84ec78bf4b3241fae866aa5a36020956152634a237d0a0e37e45f10b2ba01e03",
+        "boost/regex/v5/object_cache.hpp": "02e6598ca6b5d67bb77e5fa7d7c4129e59eba94a059e816099c9acdd93771ca1",
+        "boost/regex/v5/perl_matcher.hpp": "878c7f01e4bf8207513974288330c8ac62c6123fc54b5b0a57bbadd409566a38",
+        "boost/regex/v5/perl_matcher_common.hpp": "5e2e36f2b02f837bd1ac9435ad50ca8a7ed7f9b632632def4dce3370e22505ac",
+        "boost/regex/v5/perl_matcher_non_recursive.hpp": "51065e89604ee7191e862af4d4a4afa4f2f32013c38b49e4bfa4e829fb333309",
+        "boost/regex/v5/primary_transform.hpp": "6417770161973c76f0f78e9c49bc30eac0515c073c19476ca644386d3105cceb",
+        "boost/regex/v5/regbase.hpp": "2ab75244537fe55aeaca4f3197136d059bcb3df7ee44e0e2b9ce470472cbd37e",
+        "boost/regex/v5/regex_algorithms.hpp": "948a6d28709dd16b4af8ddbb3ca3226bfb8a0eb63ae0f2ed81491e1891822dd0",
+        "boost/regex/v5/regex_format.hpp": "bfd156c46542b7cb01ead8f6232949ffde53fcef0115259463b1c10c842ca0db",
+        "boost/regex/v5/regex_raw_buffer.hpp": "498ae16d74a8c392f054285ee5750fb31b116b4937e8bf649cd25dd41ce13458",
+        "boost/regex/v5/regex_traits_defaults.hpp": "d76ad6da931aeffdc4703a58fa7cce8eee3a3577cc9ecbf38d7df44d47964755",
+        "boost/regex/v5/states.hpp": "f678a7396e3c4a65ad1d2b04cb9f2d45ac2aeb9e96db3a53eb2907350a519497",
+        "boost/regex/v5/sub_match.hpp": "40ee7bba703b702cb5166ceae86be7bd00af0a432cf369680cd9fd77a1ea14b1",
+        "boost/regex/v5/syntax_type.hpp": "b9c35cd489c496e67d1b5aeb860457ced6b6e6cfb6f37ad9ed30be26af9502ba",
+        "boost/regex/v5/w32_regex_traits.hpp": "d25020606e7c63abf664b7e69abff2628c524b2946587c45598715a87923fff2",
+        "boost/regex.hpp": "72ec31bf9e446761eaaac25b526d451e9c05479544380bb262bc0f73f57692b3",
+        "boost/regex_fwd.hpp": "5b242ef3adff2f1aabd6ba4f04d7c893674501910219ce78191d5ddd730facb9",
+        "boost/version.hpp": "6aa04f0a8e473697a03243128a653b20afa9d8a1362ac97b4f5114b0c882de14"
+      },
+      "functional": {
+        "seed": 1298345095,
+        "random_cases": 1000,
+        "cases": 17772,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "9ab045f9eed26b9235923a70458c049583e2d624e6b0df285e5fec64550458c6",
+          "rust": "b4a4410d0ce5f35facedb22647d2dbb90e29207faeaac0cf24fd419539a20827"
+        }
+      },
+      "characters": {
+        "seed": 189,
+        "random_templates": 2000,
+        "cases_per_scenario": 2930,
+        "total_cases": 5860,
+        "scenarios": [
+          {
+            "name": "default",
+            "arguments": [],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "locale:en_US.UTF-8",
+            "arguments": [
+              "--locale",
+              "en_US.UTF-8"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          }
+        ]
+      },
+      "accounting": {
+        "cases": 1601,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "9ab045f9eed26b9235923a70458c049583e2d624e6b0df285e5fec64550458c6",
+          "rust": "1611d82aa37e14d35045ddca487d980f48bc47d17a89c003e44ae0339a8950a5"
+        },
+        "performance_measured": false
+      },
+      "boundary_probes": 17,
+      "rust_test_passes_including_doc": 53,
+      "reference_selftests": 20,
+      "benchmark_checks": {
+        "workloads": 9,
+        "status": "passed",
+        "measurement_samples": 0,
+        "baseline_sha256": "77020bea7b9d3f73ee0f71597b141ab5c2a1ca9dcbd7bd22000f8dacbc34f660"
+      },
+      "workflow_steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Select MSVC target",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Record Rust toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check library and examples without C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check optional diagnostic and measurement tooling",
+          "conclusion": "success"
+        },
+        {
+          "name": "Standalone consumer without a C++ compiler",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit, integration, sharing, and caller-limit tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Documentation tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clippy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build byte protocol caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build observed C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build uninstrumented baseline",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate reference byte protocol and observer",
+          "conclusion": "success"
+        },
+        {
+          "name": "Functional differential comparison",
+          "conclusion": "success"
+        },
+        {
+          "name": "Character-rule scenarios",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate performance tooling without measurements",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build accounting diagnostic caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust computation-accounting boundary tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compare original computation accounting and boundaries",
+          "conclusion": "success"
+        },
+        {
+          "name": "Retained C++ source unchanged",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload functional evidence and environment",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "target": "aarch64-apple-darwin",
+        "artifact_id": 12548878542,
+        "digest": "sha256:aa10fa3c1bd440b1a5a67bd718250e13dcb7469addb75715e9450e202c1ce241"
+      }
+    },
+    {
+      "target": "aarch64-pc-windows-msvc",
+      "runner": "windows-11-vs2026-arm",
+      "job_id": 120790602323,
+      "job_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631/job/120790602323",
+      "conclusion": "success",
+      "rust_toolchain": {
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "binary": "rustc",
+        "commit-hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "commit-date": "2026-10-13",
+        "host": "aarch64-pc-windows-msvc",
+        "release": "1.99.1",
+        "LLVM version": "23.1.1"
+      },
+      "runner_image": "20261021.192.1",
+      "host": "Windows-11-10.0.26200-SP0",
+      "cpp_compiler": {
+        "command": [
+          "cl"
+        ],
+        "status": 0,
+        "stdout": "usage: cl [ option... ] filename... [ /link linkoption... ]\n",
+        "stderr": "Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for ARM64\nCopyright (C) Microsoft Corporation.  All rights reserved.\n\n"
+      },
+      "reference_build_command": [
+        "cl",
+        "/nologo",
+        "/std:c++17",
+        "/O2",
+        "/EHsc",
+        "/W4",
+        "/Zc:__cplusplus",
+        "/IC:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\target\\reference\\raw-error-observer",
+        "/IC:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim",
+        "/DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1",
+        "/DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1",
+        "C:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\tools\\reference.cpp",
+        "/Fe:C:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\target\\reference\\reference.exe",
+        "/Fo:C:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\target\\reference\\reference.obj"
+      ],
+      "reference_environment": {
+        "pointer_bits": 64,
+        "char_signed": true,
+        "traits": "win32",
+        "locale_id": 1033,
+        "msvc_version": 1951,
+        "cplusplus": 201703,
+        "state_limit": 100000000,
+        "block_size": 4096,
+        "max_blocks": 1024,
+        "creator_depth": 100,
+        "saved_state_bytes": {
+          "base": 8,
+          "capture": 40,
+          "position": 24,
+          "assertion": 32,
+          "repeater": 48,
+          "extra_block": 24,
+          "single_repeat": 32,
+          "recursion": 184,
+          "case": 16
+        },
+        "match_results_bytes": 80,
+        "raw_error_observer": true
+      },
+      "rust_environment": {
+        "engine": "rust",
+        "os": "windows",
+        "arch": "aarch64",
+        "debug_assertions": true,
+        "measurements": false,
+        "diagnostics": false
+      },
+      "reference_source_files_sha256": {
+        "boost\\regex\\config.hpp": "ad1b4dc5d39f46b942fae6b03551256f588a6ba9b05a581e97e45c3977bb8727",
+        "boost\\regex\\pattern_except.hpp": "ae8998a16ff8a932decc4bcba9aa0687f54478e9aac44193ae0460d932f8244e",
+        "boost\\regex\\regex_traits.hpp": "ded571ca19fc19ac4de0d48e315b58c340820b864bc41ffc128e9261f858eb5f",
+        "boost\\regex\\v5\\basic_regex.hpp": "af4a2f8e1140b9886865d5f698af68aa9e07fae0916a922a252502b52eac5f81",
+        "boost\\regex\\v5\\basic_regex_creator.hpp": "e20117423e3c7104a4e28832b9006782b57e6fad572b6dc077d03c307c0fff9a",
+        "boost\\regex\\v5\\basic_regex_parser.hpp": "2d3f7aee356b5a948742ec45145a1fb8dd35381196b30ce2095e94bdf648e728",
+        "boost\\regex\\v5\\cpp_regex_traits.hpp": "12c15a70b95ee18d0181e6c9aa7a1c84e6172bba5e66c7237047084dd6a70200",
+        "boost\\regex\\v5\\error_type.hpp": "5fa26e4e3ccd76fbf9ad25f514c9e4a00038888538040e1d830a8a6d32027fab",
+        "boost\\regex\\v5\\match_flags.hpp": "08c978490acf5659c04c7b21e7648c9f66e8e9a91c3e5399afe0789e4c309dee",
+        "boost\\regex\\v5\\match_results.hpp": "f72949516418f87c9afb0295b326bbe0cca1c2bb3a6e3d8ae2a6a4afc05b3508",
+        "boost\\regex\\v5\\mem_block_cache.hpp": "0418f0256e71351574d34ba752d8bb980d8b713ca0e63e78d529fc982194e83d",
+        "boost\\regex\\v5\\object_cache.hpp": "1a72ee028dd05fba22e3ccb5c9705ed30dc28b514b7c28ab6b7bb64211b6ae8a",
+        "boost\\regex\\v5\\perl_matcher.hpp": "761822054e92c1624a6390a213915c322e571df074519453f41508450460d7a5",
+        "boost\\regex\\v5\\perl_matcher_common.hpp": "320186382e620f2e466f02bed0fc9c04db6c59f0f2866c44f205a6dd4b13099c",
+        "boost\\regex\\v5\\perl_matcher_non_recursive.hpp": "b2b13ba2cba14b5e9bc09dd4ab32bc4d27cd87674d03b57b71db712f3f20fb81",
+        "boost\\regex\\v5\\primary_transform.hpp": "7de482e7e73ee180a0d1ae9d20498b9df4c3f14bda359fe4215ff5eb5c8d7dc3",
+        "boost\\regex\\v5\\regbase.hpp": "52457790a7121c6eddd8b386f0a928cd57ba5d52bd212c9e0c5def2c1a97db41",
+        "boost\\regex\\v5\\regex_algorithms.hpp": "974111fea3363fe5d0cad3a511ece9bac7f3f9bde9cfee631503a645beaff3f3",
+        "boost\\regex\\v5\\regex_format.hpp": "e6ce6644a4f348ace94670554cabf55c4fc394b8fc5555405f649babe6f73e62",
+        "boost\\regex\\v5\\regex_raw_buffer.hpp": "3ec8e6e8083f563913cee489ab7c1e13368cbc967864012492c5787b5e42daad",
+        "boost\\regex\\v5\\regex_traits_defaults.hpp": "7abe9e336bca07fcd438d303321f32c679368273a71003e3bce12275a5172472",
+        "boost\\regex\\v5\\states.hpp": "5ac0f128721edb32a6a203c1c9c188db4b824e8fe09bf560cc3507cf1040422d",
+        "boost\\regex\\v5\\sub_match.hpp": "edd1dd8c8e752469988b807975d9bdcf46d1c1f9fcecaa36f6ac322dbf3a7a4a",
+        "boost\\regex\\v5\\syntax_type.hpp": "c5c4414b0d687f2e441f72ac899f3111658290a1aa5e6c7511e86050f7005485",
+        "boost\\regex\\v5\\w32_regex_traits.hpp": "a5ee996e0939ed274868e4be149a6f8ab246eb17d1d25dac272223f73021132a",
+        "boost\\regex.hpp": "2b91d3dc01e352d0bbff75a8e804839c55e0fb690f98bbc610d0e2440393a15c",
+        "boost\\regex_fwd.hpp": "b0abfa07b7bc411e6c208e99582d5d35dac657b5197f650e761b602fd2ac38b9",
+        "boost\\version.hpp": "be205da98bf4342c8614d96c6af59e41a71b4719835772214d1c9dc2cd060885"
+      },
+      "functional": {
+        "seed": 1298345095,
+        "random_cases": 1000,
+        "cases": 17772,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "ac57e6a82b6764849fa4eb4990f56025f7a11e35edf53345a1fe732e0da658a4",
+          "rust": "ff391262e12a267f4d0c8604b609b166cf8f65e0e2d6d669f902c0f60bd3ae27"
+        }
+      },
+      "characters": {
+        "seed": 189,
+        "random_templates": 2000,
+        "cases_per_scenario": 2930,
+        "total_cases": 8790,
+        "scenarios": [
+          {
+            "name": "default",
+            "arguments": [],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "lcid:1041",
+            "arguments": [
+              "--lcid",
+              "1041"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "lcid:2052",
+            "arguments": [
+              "--lcid",
+              "2052"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          }
+        ]
+      },
+      "accounting": {
+        "cases": 1601,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "ac57e6a82b6764849fa4eb4990f56025f7a11e35edf53345a1fe732e0da658a4",
+          "rust": "317639a05fd3522b2e9af40779a4d803fc57dbdf89e417ac0bd0aae617377503"
+        },
+        "performance_measured": false
+      },
+      "boundary_probes": 17,
+      "rust_test_passes_including_doc": 49,
+      "reference_selftests": 20,
+      "benchmark_checks": {
+        "workloads": 9,
+        "status": "passed",
+        "measurement_samples": 0,
+        "baseline_sha256": "9f15384b63319eca03d6cf34b4a645c29bf70e6ad13de28d8f2fd403248c29f1"
+      },
+      "workflow_steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Select MSVC target",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record Rust toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check library and examples without C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check optional diagnostic and measurement tooling",
+          "conclusion": "success"
+        },
+        {
+          "name": "Standalone consumer without a C++ compiler",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit, integration, sharing, and caller-limit tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Documentation tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clippy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build byte protocol caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build observed C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build uninstrumented baseline",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate reference byte protocol and observer",
+          "conclusion": "success"
+        },
+        {
+          "name": "Functional differential comparison",
+          "conclusion": "success"
+        },
+        {
+          "name": "Character-rule scenarios",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate performance tooling without measurements",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build accounting diagnostic caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust computation-accounting boundary tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compare original computation accounting and boundaries",
+          "conclusion": "success"
+        },
+        {
+          "name": "Retained C++ source unchanged",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload functional evidence and environment",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "target": "aarch64-pc-windows-msvc",
+        "artifact_id": 12549541588,
+        "digest": "sha256:07ce1bd38438a4cb8726fb5ff16b7c7ed889b668ccda9d317d2438e248a5c69d"
+      }
+    },
+    {
+      "target": "aarch64-unknown-linux-gnu",
+      "runner": "ubuntu-24.04-arm",
+      "job_id": 120790602289,
+      "job_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631/job/120790602289",
+      "conclusion": "success",
+      "rust_toolchain": {
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "binary": "rustc",
+        "commit-hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "commit-date": "2026-10-13",
+        "host": "aarch64-unknown-linux-gnu",
+        "release": "1.99.1",
+        "LLVM version": "23.1.1"
+      },
+      "runner_image": "20261012.149.1",
+      "host": "Linux-6.17.0-1022-azure-aarch64-with-glibc2.39",
+      "cpp_compiler": {
+        "command": [
+          "c++",
+          "--version"
+        ],
+        "status": 0,
+        "stdout": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderr": ""
+      },
+      "reference_build_command": [
+        "c++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-pthread",
+        "-I/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/raw-error-observer",
+        "-I/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim",
+        "-DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1",
+        "-DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1",
+        "/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/tools/reference.cpp",
+        "-o",
+        "/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/reference"
+      ],
+      "reference_environment": {
+        "pointer_bits": 64,
+        "char_signed": false,
+        "traits": "cpp_locale",
+        "locale_name_hex": "43",
+        "compiler_version_hex": "31332e332e30",
+        "cplusplus": 201703,
+        "state_limit": 100000000,
+        "block_size": 4096,
+        "max_blocks": 1024,
+        "creator_depth": 100,
+        "saved_state_bytes": {
+          "base": 8,
+          "capture": 40,
+          "position": 24,
+          "assertion": 32,
+          "repeater": 48,
+          "extra_block": 24,
+          "single_repeat": 32,
+          "recursion": 184,
+          "case": 16
+        },
+        "match_results_bytes": 80,
+        "raw_error_observer": true
+      },
+      "rust_environment": {
+        "engine": "rust",
+        "os": "linux",
+        "arch": "aarch64",
+        "debug_assertions": true,
+        "measurements": false,
+        "diagnostics": false
+      },
+      "reference_source_files_sha256": {
+        "boost/regex/config.hpp": "b720b3de7900aaafaeee0533a1776c002e9b473e6eac0927771babba0bcbbc89",
+        "boost/regex/pattern_except.hpp": "2c158886dc470114ae0b83bee3ef2b6063829ef78b0d05c9110938aa2b66fb76",
+        "boost/regex/regex_traits.hpp": "7c5618ea5485019f001783e12d398078f7df31af70afff4fe4c02c568fc019b8",
+        "boost/regex/v5/basic_regex.hpp": "93b7932e3229e2ffce8adfda3c01f372b0fa7aaaa76e3b2124417d075f844f92",
+        "boost/regex/v5/basic_regex_creator.hpp": "9cb43d923e2d721d11ff101395fd6aa59d2f509aafef0ae592b0d88bb97e72ee",
+        "boost/regex/v5/basic_regex_parser.hpp": "280fa67a24e38682c70a3f6f54d580a8ac0d9dc9d2e02367041a2b8b257bdcac",
+        "boost/regex/v5/cpp_regex_traits.hpp": "ec4d20ceeb5aea53325e7b1d64ea1733d5f824a5f80a0c96852e3d833750bfde",
+        "boost/regex/v5/error_type.hpp": "56f40623c1ca6439a4684b874b132ac137ec69b5442bc320a26ba81341a099fe",
+        "boost/regex/v5/match_flags.hpp": "c42c27220a95c8a0adf9736e83990a804e2a6fceb9a70b75e7dc00836f81e61d",
+        "boost/regex/v5/match_results.hpp": "5cb7ed8370723619af78a308267c30f92ced895b1b78d4f081a6bdf57fb52311",
+        "boost/regex/v5/mem_block_cache.hpp": "84ec78bf4b3241fae866aa5a36020956152634a237d0a0e37e45f10b2ba01e03",
+        "boost/regex/v5/object_cache.hpp": "02e6598ca6b5d67bb77e5fa7d7c4129e59eba94a059e816099c9acdd93771ca1",
+        "boost/regex/v5/perl_matcher.hpp": "878c7f01e4bf8207513974288330c8ac62c6123fc54b5b0a57bbadd409566a38",
+        "boost/regex/v5/perl_matcher_common.hpp": "5e2e36f2b02f837bd1ac9435ad50ca8a7ed7f9b632632def4dce3370e22505ac",
+        "boost/regex/v5/perl_matcher_non_recursive.hpp": "51065e89604ee7191e862af4d4a4afa4f2f32013c38b49e4bfa4e829fb333309",
+        "boost/regex/v5/primary_transform.hpp": "6417770161973c76f0f78e9c49bc30eac0515c073c19476ca644386d3105cceb",
+        "boost/regex/v5/regbase.hpp": "2ab75244537fe55aeaca4f3197136d059bcb3df7ee44e0e2b9ce470472cbd37e",
+        "boost/regex/v5/regex_algorithms.hpp": "948a6d28709dd16b4af8ddbb3ca3226bfb8a0eb63ae0f2ed81491e1891822dd0",
+        "boost/regex/v5/regex_format.hpp": "bfd156c46542b7cb01ead8f6232949ffde53fcef0115259463b1c10c842ca0db",
+        "boost/regex/v5/regex_raw_buffer.hpp": "498ae16d74a8c392f054285ee5750fb31b116b4937e8bf649cd25dd41ce13458",
+        "boost/regex/v5/regex_traits_defaults.hpp": "d76ad6da931aeffdc4703a58fa7cce8eee3a3577cc9ecbf38d7df44d47964755",
+        "boost/regex/v5/states.hpp": "f678a7396e3c4a65ad1d2b04cb9f2d45ac2aeb9e96db3a53eb2907350a519497",
+        "boost/regex/v5/sub_match.hpp": "40ee7bba703b702cb5166ceae86be7bd00af0a432cf369680cd9fd77a1ea14b1",
+        "boost/regex/v5/syntax_type.hpp": "b9c35cd489c496e67d1b5aeb860457ced6b6e6cfb6f37ad9ed30be26af9502ba",
+        "boost/regex/v5/w32_regex_traits.hpp": "d25020606e7c63abf664b7e69abff2628c524b2946587c45598715a87923fff2",
+        "boost/regex.hpp": "72ec31bf9e446761eaaac25b526d451e9c05479544380bb262bc0f73f57692b3",
+        "boost/regex_fwd.hpp": "5b242ef3adff2f1aabd6ba4f04d7c893674501910219ce78191d5ddd730facb9",
+        "boost/version.hpp": "6aa04f0a8e473697a03243128a653b20afa9d8a1362ac97b4f5114b0c882de14"
+      },
+      "functional": {
+        "seed": 1298345095,
+        "random_cases": 1000,
+        "cases": 17772,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "b21c38da268697e6e6f6ab951c9a6f7d8db060103e3c054300a3c52f6f69c4f5",
+          "rust": "2189f92ac4ba889ef508440f3a632158fcf8d6a2f56173ad1f0b8cb989d729e5"
+        }
+      },
+      "characters": {
+        "seed": 189,
+        "random_templates": 2000,
+        "cases_per_scenario": 2930,
+        "total_cases": 8790,
+        "scenarios": [
+          {
+            "name": "default",
+            "arguments": [],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "locale:C.UTF-8",
+            "arguments": [
+              "--locale",
+              "C.UTF-8"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "locale:en_US.UTF-8",
+            "arguments": [
+              "--locale",
+              "en_US.UTF-8"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          }
+        ]
+      },
+      "accounting": {
+        "cases": 1601,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "b21c38da268697e6e6f6ab951c9a6f7d8db060103e3c054300a3c52f6f69c4f5",
+          "rust": "7abaccc23bc0a68cb1ae4537b67d177060495045b4fd9f9877f4812c26bf87a9"
+        },
+        "performance_measured": false
+      },
+      "boundary_probes": 17,
+      "rust_test_passes_including_doc": 51,
+      "reference_selftests": 20,
+      "benchmark_checks": {
+        "workloads": 9,
+        "status": "passed",
+        "measurement_samples": 0,
+        "baseline_sha256": "c0ca3d75987475f4d5325da2375e957696a720dd50d41bb26bcdd9640adb6625"
+      },
+      "workflow_steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Select MSVC target",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Record Rust toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check library and examples without C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check optional diagnostic and measurement tooling",
+          "conclusion": "success"
+        },
+        {
+          "name": "Standalone consumer without a C++ compiler",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit, integration, sharing, and caller-limit tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Documentation tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clippy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build byte protocol caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build observed C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build uninstrumented baseline",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate reference byte protocol and observer",
+          "conclusion": "success"
+        },
+        {
+          "name": "Functional differential comparison",
+          "conclusion": "success"
+        },
+        {
+          "name": "Character-rule scenarios",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate performance tooling without measurements",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build accounting diagnostic caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust computation-accounting boundary tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compare original computation accounting and boundaries",
+          "conclusion": "success"
+        },
+        {
+          "name": "Retained C++ source unchanged",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload functional evidence and environment",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "target": "aarch64-unknown-linux-gnu",
+        "artifact_id": 12549840635,
+        "digest": "sha256:ca8406e1054f9241575724e5add8cceee0f566203d66a818ff38e332e8e16fe1"
+      }
+    },
+    {
+      "target": "x86_64-apple-darwin",
+      "runner": "macos-15-intel",
+      "job_id": 120790602179,
+      "job_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631/job/120790602179",
+      "conclusion": "success",
+      "rust_toolchain": {
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "binary": "rustc",
+        "commit-hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "commit-date": "2026-10-13",
+        "host": "x86_64-apple-darwin",
+        "release": "1.99.1",
+        "LLVM version": "23.1.1"
+      },
+      "runner_image": "20260824.0482.1",
+      "host": "macOS-15.7.9-x86_64-i386-64bit-Mach-O",
+      "cpp_compiler": {
+        "command": [
+          "c++",
+          "--version"
+        ],
+        "status": 0,
+        "stdout": "Apple clang version 17.0.0 (clang-1700.0.13.5)\nTarget: x86_64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin\n",
+        "stderr": ""
+      },
+      "reference_build_command": [
+        "c++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-pthread",
+        "-I/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/raw-error-observer",
+        "-I/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim",
+        "-DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1",
+        "-DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1",
+        "/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/tools/reference.cpp",
+        "-o",
+        "/Users/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/reference"
+      ],
+      "reference_environment": {
+        "pointer_bits": 64,
+        "char_signed": true,
+        "traits": "cpp_locale",
+        "locale_name_hex": "43",
+        "clang_version_hex": "31372e302e302028636c616e672d313730302e302e31332e3529",
+        "cplusplus": 201703,
+        "state_limit": 100000000,
+        "block_size": 4096,
+        "max_blocks": 1024,
+        "creator_depth": 100,
+        "saved_state_bytes": {
+          "base": 8,
+          "capture": 40,
+          "position": 24,
+          "assertion": 32,
+          "repeater": 48,
+          "extra_block": 24,
+          "single_repeat": 32,
+          "recursion": 184,
+          "case": 16
+        },
+        "match_results_bytes": 80,
+        "raw_error_observer": true
+      },
+      "rust_environment": {
+        "engine": "rust",
+        "os": "macos",
+        "arch": "x86_64",
+        "debug_assertions": true,
+        "measurements": false,
+        "diagnostics": false
+      },
+      "reference_source_files_sha256": {
+        "boost/regex/config.hpp": "b720b3de7900aaafaeee0533a1776c002e9b473e6eac0927771babba0bcbbc89",
+        "boost/regex/pattern_except.hpp": "2c158886dc470114ae0b83bee3ef2b6063829ef78b0d05c9110938aa2b66fb76",
+        "boost/regex/regex_traits.hpp": "7c5618ea5485019f001783e12d398078f7df31af70afff4fe4c02c568fc019b8",
+        "boost/regex/v5/basic_regex.hpp": "93b7932e3229e2ffce8adfda3c01f372b0fa7aaaa76e3b2124417d075f844f92",
+        "boost/regex/v5/basic_regex_creator.hpp": "9cb43d923e2d721d11ff101395fd6aa59d2f509aafef0ae592b0d88bb97e72ee",
+        "boost/regex/v5/basic_regex_parser.hpp": "280fa67a24e38682c70a3f6f54d580a8ac0d9dc9d2e02367041a2b8b257bdcac",
+        "boost/regex/v5/cpp_regex_traits.hpp": "ec4d20ceeb5aea53325e7b1d64ea1733d5f824a5f80a0c96852e3d833750bfde",
+        "boost/regex/v5/error_type.hpp": "56f40623c1ca6439a4684b874b132ac137ec69b5442bc320a26ba81341a099fe",
+        "boost/regex/v5/match_flags.hpp": "c42c27220a95c8a0adf9736e83990a804e2a6fceb9a70b75e7dc00836f81e61d",
+        "boost/regex/v5/match_results.hpp": "5cb7ed8370723619af78a308267c30f92ced895b1b78d4f081a6bdf57fb52311",
+        "boost/regex/v5/mem_block_cache.hpp": "84ec78bf4b3241fae866aa5a36020956152634a237d0a0e37e45f10b2ba01e03",
+        "boost/regex/v5/object_cache.hpp": "02e6598ca6b5d67bb77e5fa7d7c4129e59eba94a059e816099c9acdd93771ca1",
+        "boost/regex/v5/perl_matcher.hpp": "878c7f01e4bf8207513974288330c8ac62c6123fc54b5b0a57bbadd409566a38",
+        "boost/regex/v5/perl_matcher_common.hpp": "5e2e36f2b02f837bd1ac9435ad50ca8a7ed7f9b632632def4dce3370e22505ac",
+        "boost/regex/v5/perl_matcher_non_recursive.hpp": "51065e89604ee7191e862af4d4a4afa4f2f32013c38b49e4bfa4e829fb333309",
+        "boost/regex/v5/primary_transform.hpp": "6417770161973c76f0f78e9c49bc30eac0515c073c19476ca644386d3105cceb",
+        "boost/regex/v5/regbase.hpp": "2ab75244537fe55aeaca4f3197136d059bcb3df7ee44e0e2b9ce470472cbd37e",
+        "boost/regex/v5/regex_algorithms.hpp": "948a6d28709dd16b4af8ddbb3ca3226bfb8a0eb63ae0f2ed81491e1891822dd0",
+        "boost/regex/v5/regex_format.hpp": "bfd156c46542b7cb01ead8f6232949ffde53fcef0115259463b1c10c842ca0db",
+        "boost/regex/v5/regex_raw_buffer.hpp": "498ae16d74a8c392f054285ee5750fb31b116b4937e8bf649cd25dd41ce13458",
+        "boost/regex/v5/regex_traits_defaults.hpp": "d76ad6da931aeffdc4703a58fa7cce8eee3a3577cc9ecbf38d7df44d47964755",
+        "boost/regex/v5/states.hpp": "f678a7396e3c4a65ad1d2b04cb9f2d45ac2aeb9e96db3a53eb2907350a519497",
+        "boost/regex/v5/sub_match.hpp": "40ee7bba703b702cb5166ceae86be7bd00af0a432cf369680cd9fd77a1ea14b1",
+        "boost/regex/v5/syntax_type.hpp": "b9c35cd489c496e67d1b5aeb860457ced6b6e6cfb6f37ad9ed30be26af9502ba",
+        "boost/regex/v5/w32_regex_traits.hpp": "d25020606e7c63abf664b7e69abff2628c524b2946587c45598715a87923fff2",
+        "boost/regex.hpp": "72ec31bf9e446761eaaac25b526d451e9c05479544380bb262bc0f73f57692b3",
+        "boost/regex_fwd.hpp": "5b242ef3adff2f1aabd6ba4f04d7c893674501910219ce78191d5ddd730facb9",
+        "boost/version.hpp": "6aa04f0a8e473697a03243128a653b20afa9d8a1362ac97b4f5114b0c882de14"
+      },
+      "functional": {
+        "seed": 1298345095,
+        "random_cases": 1000,
+        "cases": 17772,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "6471ffdf930454134b21d2606f98699a9bc6d8f1179364f1b5acce282cbbd48c",
+          "rust": "d61748075828936ea9499515cdfa76e5591e2a4c85a2efc5e991c788a9a39a66"
+        }
+      },
+      "characters": {
+        "seed": 189,
+        "random_templates": 2000,
+        "cases_per_scenario": 2930,
+        "total_cases": 5860,
+        "scenarios": [
+          {
+            "name": "default",
+            "arguments": [],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "locale:en_US.UTF-8",
+            "arguments": [
+              "--locale",
+              "en_US.UTF-8"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          }
+        ]
+      },
+      "accounting": {
+        "cases": 1601,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "6471ffdf930454134b21d2606f98699a9bc6d8f1179364f1b5acce282cbbd48c",
+          "rust": "98258796242aad23809b556b41d26c44f4028358c100508ac498014718fb6caa"
+        },
+        "performance_measured": false
+      },
+      "boundary_probes": 17,
+      "rust_test_passes_including_doc": 53,
+      "reference_selftests": 20,
+      "benchmark_checks": {
+        "workloads": 9,
+        "status": "passed",
+        "measurement_samples": 0,
+        "baseline_sha256": "36a602499d64fd4e9bd0c9f626f966704a5c277fa795ffc58c667f189f576a85"
+      },
+      "workflow_steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Select MSVC target",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Record Rust toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check library and examples without C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check optional diagnostic and measurement tooling",
+          "conclusion": "success"
+        },
+        {
+          "name": "Standalone consumer without a C++ compiler",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit, integration, sharing, and caller-limit tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Documentation tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clippy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build byte protocol caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build observed C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build uninstrumented baseline",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate reference byte protocol and observer",
+          "conclusion": "success"
+        },
+        {
+          "name": "Functional differential comparison",
+          "conclusion": "success"
+        },
+        {
+          "name": "Character-rule scenarios",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate performance tooling without measurements",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build accounting diagnostic caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust computation-accounting boundary tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compare original computation accounting and boundaries",
+          "conclusion": "success"
+        },
+        {
+          "name": "Retained C++ source unchanged",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload functional evidence and environment",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "target": "x86_64-apple-darwin",
+        "artifact_id": 12549089632,
+        "digest": "sha256:62cd776f99186f268d64a6c6439d4537e02c8adffafadda87e816b5c6a038631"
+      }
+    },
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "runner": "windows-2025",
+      "job_id": 120790602155,
+      "job_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631/job/120790602155",
+      "conclusion": "success",
+      "rust_toolchain": {
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "binary": "rustc",
+        "commit-hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "commit-date": "2026-10-13",
+        "host": "x86_64-pc-windows-msvc",
+        "release": "1.99.1",
+        "LLVM version": "23.1.1"
+      },
+      "runner_image": "20261021.278.1",
+      "host": "Windows-2025Server-10.0.26100-SP0",
+      "cpp_compiler": {
+        "command": [
+          "cl"
+        ],
+        "status": 0,
+        "stdout": "usage: cl [ option... ] filename... [ /link linkoption... ]\n",
+        "stderr": "Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for x64\nCopyright (C) Microsoft Corporation.  All rights reserved.\n\n"
+      },
+      "reference_build_command": [
+        "cl",
+        "/nologo",
+        "/std:c++17",
+        "/O2",
+        "/EHsc",
+        "/W4",
+        "/Zc:__cplusplus",
+        "/ID:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\target\\reference\\raw-error-observer",
+        "/ID:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim",
+        "/DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1",
+        "/DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1",
+        "D:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\tools\\reference.cpp",
+        "/Fe:D:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\target\\reference\\reference.exe",
+        "/Fo:D:\\a\\BoostRegexRSTrim\\BoostRegexRSTrim\\target\\reference\\reference.obj"
+      ],
+      "reference_environment": {
+        "pointer_bits": 64,
+        "char_signed": true,
+        "traits": "win32",
+        "locale_id": 1033,
+        "msvc_version": 1951,
+        "cplusplus": 201703,
+        "state_limit": 100000000,
+        "block_size": 4096,
+        "max_blocks": 1024,
+        "creator_depth": 100,
+        "saved_state_bytes": {
+          "base": 8,
+          "capture": 40,
+          "position": 24,
+          "assertion": 32,
+          "repeater": 48,
+          "extra_block": 24,
+          "single_repeat": 32,
+          "recursion": 184,
+          "case": 16
+        },
+        "match_results_bytes": 80,
+        "raw_error_observer": true
+      },
+      "rust_environment": {
+        "engine": "rust",
+        "os": "windows",
+        "arch": "x86_64",
+        "debug_assertions": true,
+        "measurements": false,
+        "diagnostics": false
+      },
+      "reference_source_files_sha256": {
+        "boost\\regex\\config.hpp": "ad1b4dc5d39f46b942fae6b03551256f588a6ba9b05a581e97e45c3977bb8727",
+        "boost\\regex\\pattern_except.hpp": "ae8998a16ff8a932decc4bcba9aa0687f54478e9aac44193ae0460d932f8244e",
+        "boost\\regex\\regex_traits.hpp": "ded571ca19fc19ac4de0d48e315b58c340820b864bc41ffc128e9261f858eb5f",
+        "boost\\regex\\v5\\basic_regex.hpp": "af4a2f8e1140b9886865d5f698af68aa9e07fae0916a922a252502b52eac5f81",
+        "boost\\regex\\v5\\basic_regex_creator.hpp": "e20117423e3c7104a4e28832b9006782b57e6fad572b6dc077d03c307c0fff9a",
+        "boost\\regex\\v5\\basic_regex_parser.hpp": "2d3f7aee356b5a948742ec45145a1fb8dd35381196b30ce2095e94bdf648e728",
+        "boost\\regex\\v5\\cpp_regex_traits.hpp": "12c15a70b95ee18d0181e6c9aa7a1c84e6172bba5e66c7237047084dd6a70200",
+        "boost\\regex\\v5\\error_type.hpp": "5fa26e4e3ccd76fbf9ad25f514c9e4a00038888538040e1d830a8a6d32027fab",
+        "boost\\regex\\v5\\match_flags.hpp": "08c978490acf5659c04c7b21e7648c9f66e8e9a91c3e5399afe0789e4c309dee",
+        "boost\\regex\\v5\\match_results.hpp": "f72949516418f87c9afb0295b326bbe0cca1c2bb3a6e3d8ae2a6a4afc05b3508",
+        "boost\\regex\\v5\\mem_block_cache.hpp": "0418f0256e71351574d34ba752d8bb980d8b713ca0e63e78d529fc982194e83d",
+        "boost\\regex\\v5\\object_cache.hpp": "1a72ee028dd05fba22e3ccb5c9705ed30dc28b514b7c28ab6b7bb64211b6ae8a",
+        "boost\\regex\\v5\\perl_matcher.hpp": "761822054e92c1624a6390a213915c322e571df074519453f41508450460d7a5",
+        "boost\\regex\\v5\\perl_matcher_common.hpp": "320186382e620f2e466f02bed0fc9c04db6c59f0f2866c44f205a6dd4b13099c",
+        "boost\\regex\\v5\\perl_matcher_non_recursive.hpp": "b2b13ba2cba14b5e9bc09dd4ab32bc4d27cd87674d03b57b71db712f3f20fb81",
+        "boost\\regex\\v5\\primary_transform.hpp": "7de482e7e73ee180a0d1ae9d20498b9df4c3f14bda359fe4215ff5eb5c8d7dc3",
+        "boost\\regex\\v5\\regbase.hpp": "52457790a7121c6eddd8b386f0a928cd57ba5d52bd212c9e0c5def2c1a97db41",
+        "boost\\regex\\v5\\regex_algorithms.hpp": "974111fea3363fe5d0cad3a511ece9bac7f3f9bde9cfee631503a645beaff3f3",
+        "boost\\regex\\v5\\regex_format.hpp": "e6ce6644a4f348ace94670554cabf55c4fc394b8fc5555405f649babe6f73e62",
+        "boost\\regex\\v5\\regex_raw_buffer.hpp": "3ec8e6e8083f563913cee489ab7c1e13368cbc967864012492c5787b5e42daad",
+        "boost\\regex\\v5\\regex_traits_defaults.hpp": "7abe9e336bca07fcd438d303321f32c679368273a71003e3bce12275a5172472",
+        "boost\\regex\\v5\\states.hpp": "5ac0f128721edb32a6a203c1c9c188db4b824e8fe09bf560cc3507cf1040422d",
+        "boost\\regex\\v5\\sub_match.hpp": "edd1dd8c8e752469988b807975d9bdcf46d1c1f9fcecaa36f6ac322dbf3a7a4a",
+        "boost\\regex\\v5\\syntax_type.hpp": "c5c4414b0d687f2e441f72ac899f3111658290a1aa5e6c7511e86050f7005485",
+        "boost\\regex\\v5\\w32_regex_traits.hpp": "a5ee996e0939ed274868e4be149a6f8ab246eb17d1d25dac272223f73021132a",
+        "boost\\regex.hpp": "2b91d3dc01e352d0bbff75a8e804839c55e0fb690f98bbc610d0e2440393a15c",
+        "boost\\regex_fwd.hpp": "b0abfa07b7bc411e6c208e99582d5d35dac657b5197f650e761b602fd2ac38b9",
+        "boost\\version.hpp": "be205da98bf4342c8614d96c6af59e41a71b4719835772214d1c9dc2cd060885"
+      },
+      "functional": {
+        "seed": 1298345095,
+        "random_cases": 1000,
+        "cases": 17772,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "4438ccbc59d9e5f5d9061b9fb28ca4751007d5ea5cb8649c9b2d80879f35218e",
+          "rust": "04ec6e856b0bbfcc29bc92f9d062f5cdd55b4820e3ac52bc933b3d167d7b40ea"
+        }
+      },
+      "characters": {
+        "seed": 189,
+        "random_templates": 2000,
+        "cases_per_scenario": 2930,
+        "total_cases": 8790,
+        "scenarios": [
+          {
+            "name": "default",
+            "arguments": [],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "lcid:1041",
+            "arguments": [
+              "--lcid",
+              "1041"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "lcid:2052",
+            "arguments": [
+              "--lcid",
+              "2052"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          }
+        ]
+      },
+      "accounting": {
+        "cases": 1601,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "4438ccbc59d9e5f5d9061b9fb28ca4751007d5ea5cb8649c9b2d80879f35218e",
+          "rust": "5332be2e8f524533bedd249dc50016bddf5baf3a8944fcc3be45a8b21e754829"
+        },
+        "performance_measured": false
+      },
+      "boundary_probes": 17,
+      "rust_test_passes_including_doc": 49,
+      "reference_selftests": 20,
+      "benchmark_checks": {
+        "workloads": 9,
+        "status": "passed",
+        "measurement_samples": 0,
+        "baseline_sha256": "a04bb2a5e88a3cbd52ddb5a2919edd872c08dbd58705dd1a6f93e4028b93c085"
+      },
+      "workflow_steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Select MSVC target",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record Rust toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check library and examples without C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check optional diagnostic and measurement tooling",
+          "conclusion": "success"
+        },
+        {
+          "name": "Standalone consumer without a C++ compiler",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit, integration, sharing, and caller-limit tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Documentation tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clippy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build byte protocol caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build observed C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build uninstrumented baseline",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate reference byte protocol and observer",
+          "conclusion": "success"
+        },
+        {
+          "name": "Functional differential comparison",
+          "conclusion": "success"
+        },
+        {
+          "name": "Character-rule scenarios",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate performance tooling without measurements",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build accounting diagnostic caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust computation-accounting boundary tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compare original computation accounting and boundaries",
+          "conclusion": "success"
+        },
+        {
+          "name": "Retained C++ source unchanged",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload functional evidence and environment",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "target": "x86_64-pc-windows-msvc",
+        "artifact_id": 12549428162,
+        "digest": "sha256:236c050e9aa630c81cc624bfdccf755b31faa5a5b49d0dfe228039ee445c4b65"
+      }
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "runner": "ubuntu-24.04",
+      "job_id": 120790602145,
+      "job_url": "https://github.com/1298345095/BoostRegexRSTrim/actions/runs/40066443631/job/120790602145",
+      "conclusion": "success",
+      "rust_toolchain": {
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "binary": "rustc",
+        "commit-hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+        "commit-date": "2026-10-13",
+        "host": "x86_64-unknown-linux-gnu",
+        "release": "1.99.1",
+        "LLVM version": "23.1.1"
+      },
+      "runner_image": "20261012.334.1",
+      "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "cpp_compiler": {
+        "command": [
+          "c++",
+          "--version"
+        ],
+        "status": 0,
+        "stdout": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+        "stderr": ""
+      },
+      "reference_build_command": [
+        "c++",
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-pedantic",
+        "-pthread",
+        "-I/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/raw-error-observer",
+        "-I/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim",
+        "-DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1",
+        "-DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1",
+        "/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/tools/reference.cpp",
+        "-o",
+        "/home/runner/work/BoostRegexRSTrim/BoostRegexRSTrim/target/reference/reference"
+      ],
+      "reference_environment": {
+        "pointer_bits": 64,
+        "char_signed": true,
+        "traits": "cpp_locale",
+        "locale_name_hex": "43",
+        "compiler_version_hex": "31332e332e30",
+        "cplusplus": 201703,
+        "state_limit": 100000000,
+        "block_size": 4096,
+        "max_blocks": 1024,
+        "creator_depth": 100,
+        "saved_state_bytes": {
+          "base": 8,
+          "capture": 40,
+          "position": 24,
+          "assertion": 32,
+          "repeater": 48,
+          "extra_block": 24,
+          "single_repeat": 32,
+          "recursion": 184,
+          "case": 16
+        },
+        "match_results_bytes": 80,
+        "raw_error_observer": true
+      },
+      "rust_environment": {
+        "engine": "rust",
+        "os": "linux",
+        "arch": "x86_64",
+        "debug_assertions": true,
+        "measurements": false,
+        "diagnostics": false
+      },
+      "reference_source_files_sha256": {
+        "boost/regex/config.hpp": "b720b3de7900aaafaeee0533a1776c002e9b473e6eac0927771babba0bcbbc89",
+        "boost/regex/pattern_except.hpp": "2c158886dc470114ae0b83bee3ef2b6063829ef78b0d05c9110938aa2b66fb76",
+        "boost/regex/regex_traits.hpp": "7c5618ea5485019f001783e12d398078f7df31af70afff4fe4c02c568fc019b8",
+        "boost/regex/v5/basic_regex.hpp": "93b7932e3229e2ffce8adfda3c01f372b0fa7aaaa76e3b2124417d075f844f92",
+        "boost/regex/v5/basic_regex_creator.hpp": "9cb43d923e2d721d11ff101395fd6aa59d2f509aafef0ae592b0d88bb97e72ee",
+        "boost/regex/v5/basic_regex_parser.hpp": "280fa67a24e38682c70a3f6f54d580a8ac0d9dc9d2e02367041a2b8b257bdcac",
+        "boost/regex/v5/cpp_regex_traits.hpp": "ec4d20ceeb5aea53325e7b1d64ea1733d5f824a5f80a0c96852e3d833750bfde",
+        "boost/regex/v5/error_type.hpp": "56f40623c1ca6439a4684b874b132ac137ec69b5442bc320a26ba81341a099fe",
+        "boost/regex/v5/match_flags.hpp": "c42c27220a95c8a0adf9736e83990a804e2a6fceb9a70b75e7dc00836f81e61d",
+        "boost/regex/v5/match_results.hpp": "5cb7ed8370723619af78a308267c30f92ced895b1b78d4f081a6bdf57fb52311",
+        "boost/regex/v5/mem_block_cache.hpp": "84ec78bf4b3241fae866aa5a36020956152634a237d0a0e37e45f10b2ba01e03",
+        "boost/regex/v5/object_cache.hpp": "02e6598ca6b5d67bb77e5fa7d7c4129e59eba94a059e816099c9acdd93771ca1",
+        "boost/regex/v5/perl_matcher.hpp": "878c7f01e4bf8207513974288330c8ac62c6123fc54b5b0a57bbadd409566a38",
+        "boost/regex/v5/perl_matcher_common.hpp": "5e2e36f2b02f837bd1ac9435ad50ca8a7ed7f9b632632def4dce3370e22505ac",
+        "boost/regex/v5/perl_matcher_non_recursive.hpp": "51065e89604ee7191e862af4d4a4afa4f2f32013c38b49e4bfa4e829fb333309",
+        "boost/regex/v5/primary_transform.hpp": "6417770161973c76f0f78e9c49bc30eac0515c073c19476ca644386d3105cceb",
+        "boost/regex/v5/regbase.hpp": "2ab75244537fe55aeaca4f3197136d059bcb3df7ee44e0e2b9ce470472cbd37e",
+        "boost/regex/v5/regex_algorithms.hpp": "948a6d28709dd16b4af8ddbb3ca3226bfb8a0eb63ae0f2ed81491e1891822dd0",
+        "boost/regex/v5/regex_format.hpp": "bfd156c46542b7cb01ead8f6232949ffde53fcef0115259463b1c10c842ca0db",
+        "boost/regex/v5/regex_raw_buffer.hpp": "498ae16d74a8c392f054285ee5750fb31b116b4937e8bf649cd25dd41ce13458",
+        "boost/regex/v5/regex_traits_defaults.hpp": "d76ad6da931aeffdc4703a58fa7cce8eee3a3577cc9ecbf38d7df44d47964755",
+        "boost/regex/v5/states.hpp": "f678a7396e3c4a65ad1d2b04cb9f2d45ac2aeb9e96db3a53eb2907350a519497",
+        "boost/regex/v5/sub_match.hpp": "40ee7bba703b702cb5166ceae86be7bd00af0a432cf369680cd9fd77a1ea14b1",
+        "boost/regex/v5/syntax_type.hpp": "b9c35cd489c496e67d1b5aeb860457ced6b6e6cfb6f37ad9ed30be26af9502ba",
+        "boost/regex/v5/w32_regex_traits.hpp": "d25020606e7c63abf664b7e69abff2628c524b2946587c45598715a87923fff2",
+        "boost/regex.hpp": "72ec31bf9e446761eaaac25b526d451e9c05479544380bb262bc0f73f57692b3",
+        "boost/regex_fwd.hpp": "5b242ef3adff2f1aabd6ba4f04d7c893674501910219ce78191d5ddd730facb9",
+        "boost/version.hpp": "6aa04f0a8e473697a03243128a653b20afa9d8a1362ac97b4f5114b0c882de14"
+      },
+      "functional": {
+        "seed": 1298345095,
+        "random_cases": 1000,
+        "cases": 17772,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "154dd8bbcaf100eb617a962936864db218ef8b8ba34382ecf8e5630bd092815d",
+          "rust": "e2c1357b53299e201e4a2938c5e9aad4462db5c9ad253df0e79721a62d7f0524"
+        }
+      },
+      "characters": {
+        "seed": 189,
+        "random_templates": 2000,
+        "cases_per_scenario": 2930,
+        "total_cases": 8790,
+        "scenarios": [
+          {
+            "name": "default",
+            "arguments": [],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "locale:C.UTF-8",
+            "arguments": [
+              "--locale",
+              "C.UTF-8"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          },
+          {
+            "name": "locale:en_US.UTF-8",
+            "arguments": [
+              "--locale",
+              "en_US.UTF-8"
+            ],
+            "status": "passed",
+            "mismatch_count": 0
+          }
+        ]
+      },
+      "accounting": {
+        "cases": 1601,
+        "mismatch_count": 0,
+        "executables_sha256": {
+          "reference": "154dd8bbcaf100eb617a962936864db218ef8b8ba34382ecf8e5630bd092815d",
+          "rust": "6756131ca96bf51b57c7b82b21e0407aac92def035c3d7ca85dcbf3078e8c4a2"
+        },
+        "performance_measured": false
+      },
+      "boundary_probes": 17,
+      "rust_test_passes_including_doc": 51,
+      "reference_selftests": 20,
+      "benchmark_checks": {
+        "workloads": 9,
+        "status": "passed",
+        "measurement_samples": 0,
+        "baseline_sha256": "74e38861544ad50645f69cb7a739d70b14bc88910e3fc0fb1879f6e7d153d24f"
+      },
+      "workflow_steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Select MSVC target",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Record Rust toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check library and examples without C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check optional diagnostic and measurement tooling",
+          "conclusion": "success"
+        },
+        {
+          "name": "Standalone consumer without a C++ compiler",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit, integration, sharing, and caller-limit tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Documentation tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clippy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build byte protocol caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build observed C++ reference",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build uninstrumented baseline",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate reference byte protocol and observer",
+          "conclusion": "success"
+        },
+        {
+          "name": "Functional differential comparison",
+          "conclusion": "success"
+        },
+        {
+          "name": "Character-rule scenarios",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate performance tooling without measurements",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build accounting diagnostic caller",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust computation-accounting boundary tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compare original computation accounting and boundaries",
+          "conclusion": "success"
+        },
+        {
+          "name": "Retained C++ source unchanged",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload functional evidence and environment",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "target": "x86_64-unknown-linux-gnu",
+        "artifact_id": 12549492641,
+        "digest": "sha256:d17ee308ceebd92e2d46e59d3c69203de0c6e5720837a132ce4e29dc7dd3a65d"
+      }
+    }
+  ],
+  "boundary_observations_shared_by_all_targets": [
+    {
+      "family": "nested-matcher-depth",
+      "operation": "full",
+      "pattern_hex": "283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e61292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929",
+      "input_hex": "61",
+      "input_length": 1,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            1
+          ],
+          "captures": [
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 159,
+          "max_state_count": 197969,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "nested-matcher-depth",
+      "operation": "full",
+      "pattern_hex": "283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e6129292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929",
+      "input_hex": "61",
+      "input_length": 1,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            1
+          ],
+          "captures": [
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 161,
+          "max_state_count": 200489,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "nested-matcher-depth",
+      "operation": "full",
+      "pattern_hex": "283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e612929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929",
+      "input_hex": "61",
+      "input_length": 1,
+      "accounting_observed": true,
+      "reference": {
+        "ok": false,
+        "phase": "execute",
+        "code": 18,
+        "position": 0,
+        "message_hex": "54686520636f6d706c6578697479206f66206d61746368696e672074686520726567756c61722065787072657373696f6e20657863656564656420707265646566696e656420626f756e64732e2020547279207265666163746f72696e672074686520726567756c61722065787072657373696f6e20746f206d616b6520656163682063686f696365206d61646520627920746865207374617465206d616368696e6520756e616d626967756f75732e20205468697320657863657074696f6e206973207468726f776e20746f2070726576656e742022657465726e616c22206d61746368657320746861742074616b6520616e20696e646566696e69746520706572696f642074696d6520746f206c6f636174652e",
+        "accounting": {
+          "state_count": 81,
+          "max_state_count": 203041,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "nested-matcher-depth",
+      "operation": "full",
+      "pattern_hex": "283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e283f3e61292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929",
+      "input_hex": "61",
+      "input_length": 1,
+      "accounting_observed": true,
+      "reference": {
+        "ok": false,
+        "phase": "execute",
+        "code": 18,
+        "position": 0,
+        "message_hex": "54686520636f6d706c6578697479206f66206d61746368696e672074686520726567756c61722065787072657373696f6e20657863656564656420707265646566696e656420626f756e64732e2020547279207265666163746f72696e672074686520726567756c61722065787072657373696f6e20746f206d616b6520656163682063686f696365206d61646520627920746865207374617465206d616368696e6520756e616d626967756f75732e20205468697320657863657074696f6e206973207468726f776e20746f2070726576656e742022657465726e616c22206d61746368657320746861742074616b6520616e20696e646566696e69746520706572696f642074696d6520746f206c6f636174652e",
+        "accounting": {
+          "state_count": 81,
+          "max_state_count": 205625,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "explicit-recursion-depth",
+      "operation": "full",
+      "pattern_hex": "283f3c783e61283f2678293f6229",
+      "input_hex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616162626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262",
+      "input_length": 158,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            158
+          ],
+          "captures": [
+            [
+              0,
+              158
+            ],
+            [
+              0,
+              158
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 787,
+          "max_state_count": 130968,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "explicit-recursion-depth",
+      "operation": "full",
+      "pattern_hex": "283f3c783e61283f2678293f6229",
+      "input_hex": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262",
+      "input_length": 160,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            160
+          ],
+          "captures": [
+            [
+              0,
+              160
+            ],
+            [
+              0,
+              160
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 797,
+          "max_state_count": 131360,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "explicit-recursion-depth",
+      "operation": "full",
+      "pattern_hex": "283f3c783e61283f2678293f6229",
+      "input_hex": "616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262",
+      "input_length": 162,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            162
+          ],
+          "captures": [
+            [
+              0,
+              162
+            ],
+            [
+              0,
+              162
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 807,
+          "max_state_count": 131752,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "explicit-recursion-depth",
+      "operation": "full",
+      "pattern_hex": "283f3c783e61283f2678293f6229",
+      "input_hex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616162626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262",
+      "input_length": 200,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            200
+          ],
+          "captures": [
+            [
+              0,
+              200
+            ],
+            [
+              0,
+              200
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 997,
+          "max_state_count": 140000,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "complexity-transition",
+      "operation": "full",
+      "pattern_hex": "28612b292b24",
+      "input_hex": "616161616161616161616161616162",
+      "input_length": 15,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": null,
+        "accounting": {
+          "state_count": 73726,
+          "max_state_count": 100540,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "complexity-transition",
+      "operation": "full",
+      "pattern_hex": "28612b292b24",
+      "input_hex": "61616161616161616161616161616162",
+      "input_length": 16,
+      "accounting_observed": true,
+      "reference": {
+        "ok": false,
+        "phase": "execute",
+        "code": 18,
+        "position": 0,
+        "message_hex": "54686520636f6d706c6578697479206f66206d61746368696e672074686520726567756c61722065787072657373696f6e20657863656564656420707265646566696e656420626f756e64732e2020547279207265666163746f72696e672074686520726567756c61722065787072657373696f6e20746f206d616b6520656163682063686f696365206d61646520627920746865207374617465206d616368696e6520756e616d626967756f75732e20205468697320657863657074696f6e206973207468726f776e20746f2070726576656e742022657465726e616c22206d61746368657320746861742074616b6520616e20696e646566696e69746520706572696f642074696d6520746f206c6f636174652e",
+        "accounting": {
+          "state_count": 100582,
+          "max_state_count": 100576,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "complexity-transition",
+      "operation": "full",
+      "pattern_hex": "28612b292b24",
+      "input_hex": "6161616161616161616161616161616162",
+      "input_length": 17,
+      "accounting_observed": true,
+      "reference": {
+        "ok": false,
+        "phase": "execute",
+        "code": 18,
+        "position": 0,
+        "message_hex": "54686520636f6d706c6578697479206f66206d61746368696e672074686520726567756c61722065787072657373696f6e20657863656564656420707265646566696e656420626f756e64732e2020547279207265666163746f72696e672074686520726567756c61722065787072657373696f6e20746f206d616b6520656163682063686f696365206d61646520627920746865207374617465206d616368696e6520756e616d626967756f75732e20205468697320657863657074696f6e206973207468726f776e20746f2070726576656e742022657465726e616c22206d61746368657320746861742074616b6520616e20696e646566696e69746520706572696f642074696d6520746f206c6f636174652e",
+        "accounting": {
+          "state_count": 100618,
+          "max_state_count": 100612,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      }
+    },
+    {
+      "family": "backtracking-storage-transition",
+      "operation": "full",
+      "pattern_hex": "2861292a",
+      "input_length": 36900,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": {
+          "span": [
+            0,
+            36900
+          ],
+          "captures": [
+            [
+              0,
+              36900
+            ],
+            [
+              36899,
+              36900
+            ]
+          ]
+        },
+        "accounting": {
+          "state_count": 184503,
+          "max_state_count": 100000000,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      },
+      "input_repeat_hex": "61"
+    },
+    {
+      "family": "backtracking-storage-transition",
+      "operation": "full",
+      "pattern_hex": "2861292a",
+      "input_length": 36901,
+      "accounting_observed": true,
+      "reference": {
+        "ok": false,
+        "phase": "execute",
+        "code": 19,
+        "position": 0,
+        "message_hex": "52616e206f7574206f6620737461636b20737061636520747279696e6720746f206d617463682074686520726567756c61722065787072657373696f6e2e",
+        "accounting": {
+          "state_count": 184507,
+          "max_state_count": 100000000,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      },
+      "input_repeat_hex": "61"
+    },
+    {
+      "family": "backtracking-storage-transition",
+      "operation": "full",
+      "pattern_hex": "2861292a",
+      "input_length": 36902,
+      "accounting_observed": true,
+      "reference": {
+        "ok": false,
+        "phase": "execute",
+        "code": 19,
+        "position": 0,
+        "message_hex": "52616e206f7574206f6620737461636b20737061636520747279696e6720746f206d617463682074686520726567756c61722065787072657373696f6e2e",
+        "accounting": {
+          "state_count": 184507,
+          "max_state_count": 100000000,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      },
+      "input_repeat_hex": "61"
+    },
+    {
+      "family": "complexity-threshold-cap",
+      "operation": "full",
+      "pattern_hex": "62",
+      "input_length": 9994,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": null,
+        "accounting": {
+          "state_count": 2,
+          "max_state_count": 99980036,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      },
+      "input_repeat_hex": "61"
+    },
+    {
+      "family": "complexity-threshold-cap",
+      "operation": "full",
+      "pattern_hex": "62",
+      "input_length": 9995,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": null,
+        "accounting": {
+          "state_count": 2,
+          "max_state_count": 100000000,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      },
+      "input_repeat_hex": "61"
+    },
+    {
+      "family": "complexity-threshold-cap",
+      "operation": "full",
+      "pattern_hex": "6262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262",
+      "input_length": 10000,
+      "accounting_observed": true,
+      "reference": {
+        "ok": true,
+        "match": null,
+        "accounting": {
+          "state_count": 2,
+          "max_state_count": 102110000,
+          "blocks_remaining_after_cleanup": 1024
+        }
+      },
+      "input_repeat_hex": "61"
+    }
+  ],
+  "totals": {
+    "targets": 6,
+    "functional_comparisons": 106632,
+    "character_comparisons": 46880,
+    "accounting_comparisons": 9606,
+    "benchmark_checksum_checks": 54,
+    "differences": 0,
+    "performance_samples": 0
+  }
+}
