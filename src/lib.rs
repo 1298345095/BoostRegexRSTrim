@@ -11,6 +11,7 @@
 //! # Ok::<(), boost_regex_rs_trim::Error>(())
 //! ```
 
+mod analysis;
 mod ast;
 pub mod character;
 mod engine;
@@ -135,7 +136,8 @@ impl Regex {
         rules: CharacterRules,
     ) -> Result<Self, Error> {
         check_limit(LimitKind::Pattern, limits.pattern, pattern.len())?;
-        let program = parser::parse(pattern, &rules)?;
+        let mut program = parser::parse(pattern, &rules)?;
+        analysis::validate(&mut program)?;
         let engine = engine::Engine::new(&program, &rules)?;
         Ok(Self {
             compiled: Arc::new(Compiled {
