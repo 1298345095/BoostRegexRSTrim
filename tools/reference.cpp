@@ -58,12 +58,18 @@ struct reference_traits : boost::regex_traits<char> {
 using reference_regex = boost::basic_regex<char, reference_traits>;
 using reference_iterator = boost::regex_iterator<const char *, char, reference_traits>;
 
-std::string hex_bytes(const std::byte *bytes, std::size_t length) {
+// C++17-compatible view: std::span would require changing the reference build.
+struct byte_view {
+  const std::byte *data;
+  std::size_t size;
+};
+
+std::string hex_bytes(byte_view bytes) {
   static constexpr char digits[] = "0123456789abcdef";
   std::string result;
-  result.reserve(length * 2);
-  for (std::size_t i = 0; i < length; ++i) {
-    const unsigned byte = std::to_integer<unsigned>(bytes[i]);
+  result.reserve(bytes.size * 2);
+  for (std::size_t i = 0; i < bytes.size; ++i) {
+    const unsigned byte = std::to_integer<unsigned>(bytes.data[i]);
     result += digits[byte >> 4];
     result += digits[byte & 15];
   }
@@ -71,7 +77,7 @@ std::string hex_bytes(const std::byte *bytes, std::size_t length) {
 }
 
 std::string hex(std::string_view bytes) {
-  return hex_bytes(reinterpret_cast<const std::byte *>(bytes.data()), bytes.size());
+  return hex_bytes({reinterpret_cast<const std::byte *>(bytes.data()), bytes.size()});
 }
 
 unsigned nibble(char c) {
@@ -143,6 +149,37 @@ void match(std::ostream &out, const boost::cmatch &found, const char *base) {
 void accounting(std::ostream &out, const std::string &operation,
                 const std::string &pattern_hex, const std::string &input_hex);
 
+void execute_result(std::ostream &result, const std::string &operation,
+                    const std::string &input, const std::string &replacement,
+                    const reference_regex &expression) {
+  const char *first = input.data();
+  const char *last = first + input.size();
+  if (operation == "replace") {
+    std::string output;
+    boost::regex_replace(std::back_inserter(output), first, last, expression,
+                         replacement);
+    result << R"({"ok":true,"output_hex":")" << hex(output) << R"("})";
+  } else if (operation == "find_all") {
+    result << R"({"ok":true,"matches":[)";
+    bool comma = false;
+    for (reference_iterator i(first, last, expression), end; i != end; ++i) {
+      if (comma) result << ',';
+      match(result, *i, first);
+      comma = true;
+    }
+    result << "]}";
+  } else {
+    boost::cmatch found;
+    const bool matched = operation == "full"
+        ? boost::regex_match(first, last, found, expression)
+        : boost::regex_search(first, last, found, expression);
+    result << R"({"ok":true,"match":)";
+    if (matched) match(result, found, first);
+    else result << "null";
+    result << '}';
+  }
+}
+
 void execute(std::ostream &out, const std::vector<std::string> &request) {
   const auto &operation = request[0];
   if (operation == "accounting_search" || operation == "accounting_full") {
@@ -163,10 +200,19 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
   } catch (const boost::regex_error &ex) {
     error(out, "compile", raw_message(ex), &ex);
     return;
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     error(out, "compile", ex.what());
     return;
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    error(out, "compile", ex.what());
+    return;
+  } catch (const std::length_error &ex) {
+    error(out, "compile", ex.what());
+    return;
+  } catch (const driver_io_error &ex) {
+    error(out, "compile", ex.what());
+    return;
+  } catch (const std::ios_base::failure &ex) {
     error(out, "compile", ex.what());
     return;
   } catch (const std::bad_alloc &ex) {
@@ -180,38 +226,19 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
   // Buffer the entire answer so failures cannot leave a partial JSON response.
   std::ostringstream result;
   try {
-    const char *first = input.data();
-    const char *last = first + input.size();
-    if (operation == "replace") {
-      std::string output;
-      boost::regex_replace(std::back_inserter(output), first, last, expression,
-                           replacement);
-      result << R"({"ok":true,"output_hex":")" << hex(output) << R"("})";
-    } else if (operation == "find_all") {
-      result << R"({"ok":true,"matches":[)";
-      bool comma = false;
-      for (reference_iterator i(first, last, expression), end; i != end; ++i) {
-        if (comma) result << ',';
-        match(result, *i, first);
-        comma = true;
-      }
-      result << "]}";
-    } else {
-      boost::cmatch found;
-      const bool matched = operation == "full"
-          ? boost::regex_match(first, last, found, expression)
-          : boost::regex_search(first, last, found, expression);
-      result << R"({"ok":true,"match":)";
-      if (matched) match(result, found, first);
-      else result << "null";
-      result << '}';
-    }
+    execute_result(result, operation, input, replacement, expression);
     out << result.str();
   } catch (const boost::regex_error &ex) {
     error(out, "execute", raw_message(ex), &ex);
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     error(out, "execute", ex.what());
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    error(out, "execute", ex.what());
+  } catch (const std::length_error &ex) {
+    error(out, "execute", ex.what());
+  } catch (const driver_io_error &ex) {
+    error(out, "execute", ex.what());
+  } catch (const std::ios_base::failure &ex) {
     error(out, "execute", ex.what());
   } catch (const std::bad_alloc &ex) {
     error(out, "execute", ex.what());
@@ -296,16 +323,16 @@ void program_byte_map(std::ostream &out, const unsigned char *map) {
   out << hex(std::string_view(reinterpret_cast<const char *>(map), 256));
 }
 
-void program_strings(std::ostream &out, const char *&data, unsigned count,
+void program_strings(std::ostream &out, const std::byte *&data, unsigned count,
                      unsigned minimum_length) {
   for (unsigned i = 0; i < count; ++i) {
     if (i) out << ',';
-    const char *start = data;
+    const std::byte *start = data;
     // Range endpoints and equivalence keys retain a leading literal NUL in
     // addition to their terminating NUL; single strings use ordinary strlen.
     data += minimum_length;
-    while (*data) ++data;
-    out << '"' << hex(std::string_view(start, static_cast<std::size_t>(data - start))) << '"';
+    while (*data != std::byte{0}) ++data;
+    out << '"' << hex_bytes({start, static_cast<std::size_t>(data - start)}) << '"';
     ++data;
   }
 }
@@ -318,7 +345,7 @@ void program_long_set(std::ostream &out, const detail::re_syntax_base *state) {
       << R"(,"negated":)" << (set->isnot ? "true" : "false")
       << R"(,"singleton":)" << (set->singleton ? "true" : "false")
       << R"(,"singles_hex":[)";
-  auto data = reinterpret_cast<const char *>(set + 1);
+  auto data = reinterpret_cast<const std::byte *>(set + 1);
   program_strings(out, data, set->csingles, 0);
   out << R"(],"range_endpoints_hex":[)";
   program_strings(out, data, 2 * set->cranges, 1);
@@ -352,7 +379,7 @@ void program_state_data(std::ostream &out, const detail::re_syntax_base *state) 
   case detail::syntax_element_literal: {
     const auto *literal = static_cast<const detail::re_literal *>(state);
     out << R"(,"literal_hex":")"
-        << hex_bytes(reinterpret_cast<const std::byte *>(literal + 1), literal->length)
+        << hex_bytes({reinterpret_cast<const std::byte *>(literal + 1), literal->length})
         << '"';
     break;
   }
@@ -435,11 +462,23 @@ void program(const std::string &encoded_pattern) {
   } catch (const boost::regex_error &ex) {
     error(std::cout, "compile", raw_message(ex), &ex);
     std::cout << '\n';
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     // Preserve the protocol response for standard-library failures.
     error(std::cout, "protocol", ex.what());
     std::cout << '\n';
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    // Preserve the protocol response for standard-library failures.
+    error(std::cout, "protocol", ex.what());
+    std::cout << '\n';
+  } catch (const std::length_error &ex) {
+    // Preserve the protocol response for standard-library failures.
+    error(std::cout, "protocol", ex.what());
+    std::cout << '\n';
+  } catch (const driver_io_error &ex) {
+    // Preserve the protocol response for standard-library failures.
+    error(std::cout, "protocol", ex.what());
+    std::cout << '\n';
+  } catch (const std::ios_base::failure &ex) {
     // Preserve the protocol response for standard-library failures.
     error(std::cout, "protocol", ex.what());
     std::cout << '\n';
@@ -554,10 +593,19 @@ void benchmark(bool measured, const std::string &operation,
   } catch (const boost::regex_error &ex) {
     error(std::cout, phase, raw_message(ex), &ex);
     std::cout << '\n';
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     error(std::cout, phase, ex.what());
     std::cout << '\n';
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    error(std::cout, phase, ex.what());
+    std::cout << '\n';
+  } catch (const std::length_error &ex) {
+    error(std::cout, phase, ex.what());
+    std::cout << '\n';
+  } catch (const driver_io_error &ex) {
+    error(std::cout, phase, ex.what());
+    std::cout << '\n';
+  } catch (const std::ios_base::failure &ex) {
     error(std::cout, phase, ex.what());
     std::cout << '\n';
   } catch (const std::bad_alloc &ex) {
@@ -585,10 +633,18 @@ bool accounting_match(std::ostream &out, observed_matcher &matcher,
     // All retained computation-limit failures happen after counters initialize.
     counters_initialized = true;
     error(out, "execute", raw_message(ex), &ex);
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     // Other failures may occur before the observer counters are initialized.
     error(out, "execute", ex.what());
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    // Other failures may occur before the observer counters are initialized.
+    error(out, "execute", ex.what());
+  } catch (const std::length_error &ex) {
+    // Other failures may occur before the observer counters are initialized.
+    error(out, "execute", ex.what());
+  } catch (const driver_io_error &ex) {
+    error(out, "execute", ex.what());
+  } catch (const std::ios_base::failure &ex) {
     error(out, "execute", ex.what());
   } catch (const std::bad_alloc &ex) {
     error(out, "execute", ex.what());
@@ -631,9 +687,15 @@ void accounting(std::ostream &out, const std::string &operation,
 #endif
   } catch (const boost::regex_error &ex) {
     error(out, phase, raw_message(ex), &ex);
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     error(out, phase, ex.what());
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    error(out, phase, ex.what());
+  } catch (const std::length_error &ex) {
+    error(out, phase, ex.what());
+  } catch (const driver_io_error &ex) {
+    error(out, phase, ex.what());
+  } catch (const std::ios_base::failure &ex) {
     error(out, phase, ex.what());
   } catch (const std::bad_alloc &ex) {
     error(out, phase, ex.what());
@@ -651,9 +713,15 @@ void benchmark_from_stdin(bool measured) {
 void process_request_line(std::string_view line) {
   try {
     execute(std::cout, fields(line));
-  } catch (const std::logic_error &ex) {
+  } catch (const std::invalid_argument &ex) {
     error(std::cout, "protocol", ex.what());
-  } catch (const std::runtime_error &ex) {
+  } catch (const std::out_of_range &ex) {
+    error(std::cout, "protocol", ex.what());
+  } catch (const std::length_error &ex) {
+    error(std::cout, "protocol", ex.what());
+  } catch (const driver_io_error &ex) {
+    error(std::cout, "protocol", ex.what());
+  } catch (const std::ios_base::failure &ex) {
     error(std::cout, "protocol", ex.what());
   } catch (const std::bad_alloc &ex) {
     error(std::cout, "protocol", ex.what());
