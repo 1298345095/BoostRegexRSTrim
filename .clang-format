@@ -1,0 +1,6 @@
+BasedOnStyle: LLVM
+Standard: c++17
+SortIncludes: Never
+SortUsingDeclarations: Never
+BreakStringLiterals: false
+ReflowComments: Never
