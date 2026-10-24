@@ -55,7 +55,7 @@ def character_options(locale=None, lcid=None):
         # they are never interpolated into a shell command.
         options.extend(["--locale", locale])
     if lcid is not None:
-        if not isinstance(lcid, str) or re.fullmatch(r"(?:[0-9]+|0[xX][0-9a-fA-F]+)", lcid) is None:
+        if not isinstance(lcid, str) or re.fullmatch(r"(?:\d+|0[xX][0-9a-fA-F]+)", lcid, flags=re.ASCII) is None:
             raise ValueError("LCID must be a positive 32-bit decimal or hexadecimal number")
         value = int(lcid, 16 if lcid.lower().startswith("0x") else 10)
         if not 0 < value <= 0xFFFFFFFF:

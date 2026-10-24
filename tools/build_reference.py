@@ -74,6 +74,28 @@ def observed_accounting_header(destination):
             "replacements": 1}
 
 
+def reference_command(args, compiler, msvc, include, source, executable, directory, suffix, observation):
+    """Keep platform-specific build flags separate from build orchestration."""
+    if msvc:
+        flags = ["/nologo", "/std:c++17", "/O2", "/EHsc", "/W4", "/Zc:__cplusplus"]
+        if args.profile == "release":
+            flags += ["/DNDEBUG"]
+        flags += ["/I" + str(path) for path in include]
+        if observation:
+            flags += ["/DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1", "/DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1"]
+        command = compiler + flags + [source, "/Fe:" + str(executable),
+                                      "/Fo:" + str(directory / ("reference" + suffix + ".obj"))]
+    else:
+        flags = ["-std=c++17", "-O3" if args.profile == "release" else "-O2",
+                 "-Wall", "-Wextra", "-pedantic", "-pthread"]
+        if args.profile == "release":
+            flags += ["-DNDEBUG"]
+        flags += ["-I" + str(path) for path in include]
+        if observation:
+            flags += ["-DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1", "-DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1"]
+        command = compiler + flags + [source, "-o", str(executable)]
+    return command
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cxx", default=os.environ.get("CXX", "cl" if os.name == "nt" else "c++"))
@@ -100,24 +122,8 @@ def main():
         accounting = observed_accounting_header(overlay)
         include.insert(0, overlay)
     source = str(ROOT / "tools/reference.cpp")
-    if msvc:
-        flags = ["/nologo", "/std:c++17", "/O2", "/EHsc", "/W4", "/Zc:__cplusplus"]
-        if args.profile == "release":
-            flags += ["/DNDEBUG"]
-        flags += ["/I" + str(path) for path in include]
-        if observation:
-            flags += ["/DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1", "/DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1"]
-        command = compiler + flags + [source, "/Fe:" + str(executable),
-                                      "/Fo:" + str(directory / ("reference" + suffix + ".obj"))]
-    else:
-        flags = ["-std=c++17", "-O3" if args.profile == "release" else "-O2",
-                 "-Wall", "-Wextra", "-pedantic", "-pthread"]
-        if args.profile == "release":
-            flags += ["-DNDEBUG"]
-        flags += ["-I" + str(path) for path in include]
-        if observation:
-            flags += ["-DBOOST_REGEX_REFERENCE_RAW_OBSERVER=1", "-DBOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER=1"]
-        command = compiler + flags + [source, "-o", str(executable)]
+    command = reference_command(args, compiler, msvc, include, source, executable,
+                                directory, suffix, observation)
     print("Compiling " + str(executable), flush=True)
     subprocess.run(command, cwd=ROOT, check=True)
     metadata = {
