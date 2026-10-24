@@ -149,8 +149,8 @@ void match(std::ostream &out, const boost::cmatch &found, const char *base) {
 void accounting(std::ostream &out, const std::string &operation,
                 const std::string &pattern_hex, const std::string &input_hex);
 
-void execute_result(std::ostream &result, const std::string &operation,
-                    const std::string &input, const std::string &replacement,
+void execute_result(std::ostream &result, std::string_view operation,
+                    std::string_view input, const std::string &replacement,
                     const reference_regex &expression) {
   const char *first = input.data();
   const char *last = first + input.size();
