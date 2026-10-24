@@ -13,7 +13,7 @@ import random
 import subprocess
 import sys
 
-from tool_paths import driver_path, report_path, write_json_report
+from tool_paths import character_options, driver_path, report_path, write_json_report
 
 
 CLASSES = (
@@ -118,6 +118,19 @@ def minimize_template(reference, rust, arguments, case):
     return {**case, "template_hex": value.hex()}
 
 
+def character_scenarios(locales, lcids, default_only):
+    scenarios = [("default", [])]
+    if default_only:
+        return scenarios
+    if not locales and os.name != "nt":
+        locales = ["C.UTF-8", "en_US.UTF-8"] if sys.platform.startswith("linux") else ["en_US.UTF-8"]
+    if not lcids and os.name == "nt":
+        lcids = ["1041", "2052"]
+    scenarios += [("locale:" + name, character_options(locale=name)) for name in locales]
+    scenarios += [("lcid:" + lcid, character_options(lcid=lcid)) for lcid in lcids]
+    return scenarios
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, default=Path("target/reference/reference" + (".exe" if os.name == "nt" else "")))
@@ -132,18 +145,11 @@ def main():
         reference = driver_path(args.reference)
         rust = driver_path(args.rust)
         args.output = report_path(args.output)
+        scenarios = character_scenarios(args.locale, args.lcid, args.default_only)
     except ValueError as error:
         parser.error(str(error))
     if args.random_templates < 0:
         parser.error("random-templates must be nonnegative")
-    scenarios = [("default", [])]
-    if not args.default_only:
-        locales = args.locale or ([] if os.name == "nt" else
-                                  ["C.UTF-8", "en_US.UTF-8"] if sys.platform.startswith("linux") else
-                                  ["en_US.UTF-8"])
-        lcids = args.lcid or (["1041", "2052"] if os.name == "nt" else [])
-        scenarios += [("locale:" + name, ["--locale", name]) for name in locales]
-        scenarios += [("lcid:" + lcid, ["--lcid", lcid]) for lcid in lcids]
     requests = cases(args.random_templates)
     report = {"seed": SEED, "random_templates": args.random_templates,
               "cases_per_scenario": len(requests), "scenarios": [],

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import character_differential
 import differential
@@ -56,6 +57,25 @@ class ValidationCliTests(unittest.TestCase):
                     self.assertIn("reports", result.stderr)
                     self.assertNotIn("Traceback", result.stderr)
                     self.assertFalse(forbidden_report.exists())
+
+    def test_character_options_are_checked_at_each_process_boundary(self):
+        suffix = ".exe" if os.name == "nt" else ""
+        with tempfile.TemporaryDirectory(dir=PROJECT_ROOT / "target") as directory:
+            reference = Path(directory) / ("reference" + suffix)
+            reference.write_text("fixture", encoding="utf-8")
+            with mock.patch.object(subprocess, "run") as run, \
+                    mock.patch.object(subprocess, "check_output") as environment:
+                with self.assertRaises(ValueError):
+                    differential.run_driver(reference, [], locale="--benchmark")
+                with self.assertRaises(ValueError):
+                    differential.driver_environment(reference, lcid="-1")
+            run.assert_not_called()
+            environment.assert_not_called()
+
+    def test_lcid_scenarios_forward_the_same_numeric_identifier(self):
+        scenarios = dict(character_differential.character_scenarios([], ["01041", "0X411"], False))
+        self.assertEqual(scenarios["lcid:01041"], ["--lcid", "1041"])
+        self.assertEqual(scenarios["lcid:0X411"], ["--lcid", "1041"])
 
 
 if __name__ == "__main__":

@@ -173,17 +173,43 @@ class BenchmarkTests(unittest.TestCase):
         workloads = self.write_workloads([item])
         response = {"ok": True, "measured": False, "checksum": 1234}
         with mock.patch.object(benchmark, "tool_version", return_value={}), \
-                mock.patch.object(benchmark, "invoke", return_value=response) as invoke, \
+                mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess(
+                    [], 0, json.dumps(response), "")) as run, \
                 mock.patch.object(subprocess, "check_output", return_value="{}"):
             self.assertEqual(self.run_main("--check", "--workloads", str(workloads)), 0)
         report = json.loads(self.report.read_text(encoding="utf-8"))
         self.assertEqual(report["workloads"][0]["name"], name)
         self.assertEqual(report["checks"][0]["workload"], name)
         self.assertEqual(list(self.report.parent.iterdir()), [self.report])
-        self.assertEqual(invoke.call_count, 2)
-        for call in invoke.call_args_list:
+        self.assertEqual(run.call_count, 2)
+        for call in run.call_args_list:
             self.assertEqual(call.args[0][1:], ["--benchmark-check", "search", "61", "6261", "", "2"])
+            self.assertIs(call.kwargs["shell"], False)
         self.assertEqual(report["samples"], [])
+
+    def test_process_boundary_rejects_unvalidated_arguments(self):
+        cases = [
+            ({"operation": "--environment"}, 2, False),
+            ({"operation": "search --benchmark"}, 2, False),
+            ({"pattern_hex": "--benchmark"}, 2, False),
+            ({"input_hex": "61; echo data"}, 2, False),
+            ({"template_hex": "00 00"}, 2, False),
+        ]
+        cases += [({}, value, False) for value in (0, -1, "2; echo data", 2.0, True, None)]
+        cases += [({}, 2, value) for value in (None, 1, "--benchmark")]
+        with mock.patch.object(subprocess, "run") as run:
+            for changes, iterations, measured in cases:
+                item = {**benchmark.WORKLOADS[0], **changes}
+                with self.subTest(changes=changes, iterations=iterations, measured=measured), \
+                        self.assertRaises(ValueError):
+                    benchmark.invoke(self.reference, item, iterations, measured, 30)
+        run.assert_not_called()
+
+    def test_process_boundary_rejects_unrecognized_driver(self):
+        with mock.patch.object(subprocess, "run") as run, self.assertRaises(ValueError):
+            benchmark.invoke(benchmark.ROOT / "tools/benchmark.py", benchmark.WORKLOADS[0],
+                             2, False, 30)
+        run.assert_not_called()
 
 
 if __name__ == "__main__":
