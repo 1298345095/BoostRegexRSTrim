@@ -56,8 +56,11 @@ python tools/benchmark.py --dry-run --report reports/benchmark-plan.json
 ```
 
 The report contains byte-exact workloads, proposed build and measurement
-commands, sample counts, iteration counts, and available build/environment
-metadata. It contains no measurement samples or performance summaries.
+commands with their five-field standard-input payloads, sample counts,
+iteration counts, and available build/environment metadata. It contains no
+measurement samples or performance summaries. The harness launches only a
+validated engine and a fixed benchmark mode in its arguments; workloads and
+iteration counts are sent on standard input before either engine starts timing.
 
 ## Run on a designated machine
 

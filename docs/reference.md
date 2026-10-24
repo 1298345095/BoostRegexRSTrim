@@ -56,9 +56,12 @@ driver. Locale names remain separate arguments, including native
 composite and non-ASCII names; empty names, option-like names, and control
 characters are rejected. LCIDs must be positive 32-bit decimal or hexadecimal
 values and are forwarded in canonical decimal form so the C++ and Rust command
-parsers select the same numeric identifier. The benchmark process boundary independently validates its operation,
-hexadecimal byte fields, positive iteration count, and explicit measurement mode
-before constructing its fixed argument list.
+parsers select the same numeric identifier. The benchmark process boundary
+independently validates its operation, hexadecimal byte fields, positive
+iteration count, and explicit measurement mode. Its command arguments contain
+only a checked local executable and a fixed benchmark mode; a five-field
+tab-separated workload is passed over standard input instead of interpolating
+file content into the command arguments.
 
 The Python regression suite checks these boundaries and pins the original
 functional and character corpora by request-stream SHA-256:
