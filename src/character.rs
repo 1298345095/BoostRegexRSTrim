@@ -137,10 +137,15 @@ impl CharacterRules {
         let mut result = Self::classic();
         for byte in u8::MIN..=u8::MAX {
             let index = usize::from(byte);
-            let (lower, upper, classes) = locale.character(byte);
+            let (lower, upper) = locale.case_map(byte);
             result.lower[index] = lower;
             result.upper[index] = upper;
-            result.classes[index] = classes;
+            // libc++'s ctype_byname<char> retains ctype<char>'s classic table
+            // and ASCII gate. Only its case maps use the named native locale.
+            #[cfg(not(target_os = "macos"))]
+            {
+                result.classes[index] = locale.classes(byte);
+            }
         }
         result.platform = Platform::Named(locale);
         result.sort = result.find_sort_syntax();
@@ -494,9 +499,9 @@ fn digit(byte: u8, radix: u32) -> Option<u32> {
 #[cfg(unix)]
 #[allow(unsafe_code)]
 mod unix {
-    use super::{
-        ALPHA, CONTROL, DIGIT, GRAPH, LOWER, LocaleError, PRINT, PUNCT, SPACE, UPPER, XDIGIT,
-    };
+    use super::LocaleError;
+    #[cfg(not(target_os = "macos"))]
+    use super::{ALPHA, CONTROL, DIGIT, GRAPH, LOWER, PRINT, PUNCT, SPACE, UPPER, XDIGIT};
     use std::ffi::{CString, c_char, c_int, c_void};
     use std::ptr::NonNull;
 
@@ -517,6 +522,16 @@ mod unix {
         fn freelocale(locale: *mut c_void) -> c_int;
         fn tolower_l(value: c_int, locale: *mut c_void) -> c_int;
         fn toupper_l(value: c_int, locale: *mut c_void) -> c_int;
+        fn strxfrm_l(
+            destination: *mut c_char,
+            source: *const c_char,
+            size: usize,
+            locale: *mut c_void,
+        ) -> usize;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    unsafe extern "C" {
         fn isalpha_l(value: c_int, locale: *mut c_void) -> c_int;
         fn iscntrl_l(value: c_int, locale: *mut c_void) -> c_int;
         fn isdigit_l(value: c_int, locale: *mut c_void) -> c_int;
@@ -527,12 +542,6 @@ mod unix {
         fn isspace_l(value: c_int, locale: *mut c_void) -> c_int;
         fn isupper_l(value: c_int, locale: *mut c_void) -> c_int;
         fn isxdigit_l(value: c_int, locale: *mut c_void) -> c_int;
-        fn strxfrm_l(
-            destination: *mut c_char,
-            source: *const c_char,
-            size: usize,
-            locale: *mut c_void,
-        ) -> usize;
     }
 
     impl Locale {
@@ -551,7 +560,21 @@ mod unix {
                 .ok_or_else(|| LocaleError(format!("Native locale is unavailable: {name}")))
         }
 
-        pub(super) fn character(&self, byte: u8) -> (u8, u8, u16) {
+        pub(super) fn case_map(&self, byte: u8) -> (u8, u8) {
+            let value = c_int::from(byte);
+            let locale = self.0.as_ptr();
+            // SAFETY: value is in the unsigned-char domain, the locale is live
+            // and immutable, and each call accepts exactly these arguments.
+            unsafe {
+                (
+                    tolower_l(value, locale).to_le_bytes()[0],
+                    toupper_l(value, locale).to_le_bytes()[0],
+                )
+            }
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        pub(super) fn classes(&self, byte: u8) -> u16 {
             let value = c_int::from(byte);
             let locale = self.0.as_ptr();
             // SAFETY: value is in the unsigned-char domain, the locale is live
@@ -574,11 +597,7 @@ mod unix {
                         classes |= bit;
                     }
                 }
-                (
-                    tolower_l(value, locale).to_le_bytes()[0],
-                    toupper_l(value, locale).to_le_bytes()[0],
-                    classes,
-                )
+                classes
             }
         }
 
@@ -905,6 +924,64 @@ mod tests {
         assert_eq!(rules.lower(b'A'), b'a');
         assert!(CharacterRules::with_locale("nonexistent_boost_regex_locale").is_err());
         assert!(CharacterRules::with_locale("C\0UTF8").is_err());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn named_libcpp_locale_keeps_classic_classes_and_native_case_maps() {
+        let rules = CharacterRules::with_locale("en_US.UTF-8").unwrap();
+        let classic = CharacterRules::default();
+        let classes: [&[u8]; 21] = [
+            b"alnum", b"alpha", b"blank", b"cntrl", b"d", b"digit", b"graph", b"h", b"l", b"lower",
+            b"print", b"punct", b"s", b"space", b"u", b"upper", b"unicode", b"v", b"w", b"word",
+            b"xdigit",
+        ];
+        for byte in u8::MIN..=u8::MAX {
+            for class in classes {
+                assert_eq!(
+                    rules.is_class(byte, class),
+                    classic.is_class(byte, class),
+                    "byte {byte:#04x}, class {class:?}"
+                );
+            }
+        }
+        // Native Darwin case conversion still maps Latin-1 code points even
+        // though the C++ char facet does not classify their individual bytes.
+        assert_eq!(rules.lower(0xc0), 0xe0);
+        assert_eq!(rules.upper(0xe0), 0xc0);
+        assert_eq!(classic.lower(0xc0), 0xc0);
+        assert_eq!(classic.upper(0xe0), 0xe0);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn named_libcpp_word_boundaries_ignore_high_bytes() {
+        let rules = CharacterRules::with_locale("en_US.UTF-8").unwrap();
+        let input = b"\xaaA\xe0_ \xa0";
+        for (pattern, positions) in [
+            (&b"\\b"[..], &b"\x01\x02\x03\x04"[..]),
+            (&b"\\B"[..], &b"\x00\x05\x06"[..]),
+            (&b"\\<"[..], &b"\x01\x03"[..]),
+            (&b"\\>"[..], &b"\x02\x04"[..]),
+        ] {
+            let regex = crate::Regex::with_character_rules(
+                pattern,
+                crate::Limits::default(),
+                rules.clone(),
+            )
+            .unwrap();
+            let spans: Vec<_> = regex
+                .find_all(input)
+                .unwrap()
+                .iter()
+                .map(crate::Match::span)
+                .collect();
+            let expected: Vec<_> = positions
+                .iter()
+                .map(|&position| usize::from(position)..usize::from(position))
+                .collect();
+            assert_eq!(spans, expected, "pattern {pattern:?}");
+        }
     }
 
     #[cfg(unix)]
