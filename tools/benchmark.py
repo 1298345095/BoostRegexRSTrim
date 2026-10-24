@@ -67,14 +67,21 @@ def load_workloads(path):
     return values
 
 
-def command(executable, item, iterations, measured):
+def command(executable, item, iterations, measured, *, must_exist=False):
+    validate_workload(item, set())
+    if type(iterations) is not int or iterations < 1:
+        raise ValueError("Benchmark iterations must be a positive integer")
+    if type(measured) is not bool:
+        raise ValueError("Benchmark measurement mode must be a boolean")
+    executable = driver_path(executable, must_exist=must_exist)
     return [str(executable), "--benchmark" if measured else "--benchmark-check",
             item["operation"], item["pattern_hex"], item["input_hex"],
             item["template_hex"], str(iterations)]
 
 
-def invoke(argv, timeout):
-    result = subprocess.run(argv, cwd=ROOT, text=True, capture_output=True,
+def invoke(executable, item, iterations, measured, timeout):
+    argv = command(executable, item, iterations, measured, must_exist=True)
+    result = subprocess.run(argv, cwd=ROOT, shell=False, text=True, capture_output=True,
                             check=True, timeout=timeout)
     value = json.loads(result.stdout)
     if not value.get("ok"):
@@ -210,8 +217,8 @@ def record_environments(args, report):
 
 
 def check_workload(args, item):
-    baseline = invoke(command(args.reference, item, 2, False), args.timeout)
-    implementation = invoke(command(args.rust, item, 2, False), args.timeout)
+    baseline = invoke(args.reference, item, 2, False, args.timeout)
+    implementation = invoke(args.rust, item, 2, False, args.timeout)
     if baseline != implementation or baseline.get("measured") is not False:
         raise ValueError("Plumbing/checksum mismatch for " + item["name"] + ": " +
                          json.dumps({"reference": baseline, "rust": implementation}))
@@ -236,7 +243,7 @@ def sample_workload(args, item, report):
             order.reverse()
         responses = {}
         for engine, executable in order:
-            response = invoke(command(executable, item, args.iterations, True), args.timeout)
+            response = invoke(executable, item, args.iterations, True, args.timeout)
             validate_sample(response, item, args.iterations)
             report["samples"].append({"workload": item["name"], "sample": sample,
                                       "engine": engine, **response})

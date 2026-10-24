@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tool_paths import PROJECT_ROOT, driver_path, project_file, report_path, write_json_report
+from tool_paths import PROJECT_ROOT, character_options, driver_path, project_file, report_path, write_json_report
 
 
 class ToolPathTests(unittest.TestCase):
@@ -119,6 +119,23 @@ class ToolPathTests(unittest.TestCase):
             write_json_report(output, {"invalid": object()})
         self.assertEqual(output.read_text(encoding="utf-8"), "fixture")
         self.assertEqual(list(self.reports.iterdir()), [output])
+
+    def test_native_character_names_and_identifiers_remain_separate_values(self):
+        for locale in ("C.UTF-8", "en_US.UTF-8", "English_United States.1252",
+                       "LC_CTYPE=en_US.UTF-8;LC_COLLATE=C", "日本語"):
+            self.assertEqual(character_options(locale, "0x411"), ["--locale", locale, "--lcid", "1041"])
+        for value, expected in (("0X411", "1041"), ("0411", "411"), ("0001041", "1041")):
+            self.assertEqual(character_options(lcid=value), ["--lcid", expected])
+        self.assertEqual(character_options(lcid="2052"), ["--lcid", "2052"])
+        self.assertEqual(character_options(), [])
+
+    def test_invalid_character_options_are_rejected(self):
+        for locale in ("", "--benchmark", "-x", "en_US\n--environment", "C\0", 123):
+            with self.subTest(locale=locale), self.assertRaises(ValueError):
+                character_options(locale=locale)
+        for lcid in ("0", "-1", "--environment", "1041 extra", "0x", "4294967296", "0x100000000", 1041):
+            with self.subTest(lcid=lcid), self.assertRaises(ValueError):
+                character_options(lcid=lcid)
 
 
 if __name__ == "__main__":

@@ -51,6 +51,15 @@ command or overwriting source files. It does not sandbox an
 untrusted build artifact or defend against another process changing files
 concurrently.
 
+The comparison tools validate locale and LCID selections before launching a
+driver. Locale names remain separate arguments, including native
+composite and non-ASCII names; empty names, option-like names, and control
+characters are rejected. LCIDs must be positive 32-bit decimal or hexadecimal
+values and are forwarded in canonical decimal form so the C++ and Rust command
+parsers select the same numeric identifier. The benchmark process boundary independently validates its operation,
+hexadecimal byte fields, positive iteration count, and explicit measurement mode
+before constructing its fixed argument list.
+
 The Python regression suite checks these boundaries and pins the original
 functional and character corpora by request-stream SHA-256:
 

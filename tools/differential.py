@@ -10,7 +10,7 @@ import random
 import subprocess
 from pathlib import Path
 
-from tool_paths import driver_path, report_path, write_json_report
+from tool_paths import character_command, character_options, driver_path, report_path, write_json_report
 
 
 def corpus(seed, random_cases):
@@ -101,10 +101,10 @@ def integer_boundary_cases():
             yield "replace", b"a", b"ab", template
 
 
-def run_driver(executable, cases, extra):
-    executable = driver_path(executable)
+def run_driver(executable, cases, *, locale=None, lcid=None):
+    command = character_command(executable, locale=locale, lcid=lcid)
     requests = "".join("\t".join((op, pattern.hex(), data.hex(), template.hex())) + "\n" for op, pattern, data, template in cases)
-    result = subprocess.run([str(executable), *extra], input=requests, text=True,
+    result = subprocess.run(command, input=requests, text=True,
                             capture_output=True, timeout=180, shell=False)
     if result.returncode:
         raise RuntimeError(f"{executable} exited {result.returncode}: {result.stderr[-4000:]}")
@@ -112,6 +112,11 @@ def run_driver(executable, cases, extra):
     if len(lines) != len(cases):
         raise RuntimeError(f"{executable} returned {len(lines)} responses for {len(cases)} requests")
     return [json.loads(line) for line in lines]
+
+
+def driver_environment(executable, *, locale=None, lcid=None):
+    command = character_command(executable, locale=locale, lcid=lcid, environment=True)
+    return json.loads(subprocess.check_output(command, text=True, timeout=30, shell=False))
 
 
 def main():
@@ -128,21 +133,22 @@ def main():
         args.reference = driver_path(args.reference)
         args.rust = driver_path(args.rust)
         args.report = report_path(args.report)
+        character_options(args.locale, args.lcid)
     except ValueError as error:
         parser.error(str(error))
     if args.random_cases < 0:
         parser.error("random-cases must be nonnegative")
-    extra = (["--locale", args.locale] if args.locale else []) + (["--lcid", args.lcid] if args.lcid else [])
+    selection = {"locale": args.locale, "lcid": args.lcid}
     cases = list(corpus(args.seed, args.random_cases))
-    expected = run_driver(args.reference, cases, extra)
-    actual = run_driver(args.rust, cases, extra)
+    expected = run_driver(args.reference, cases, **selection)
+    actual = run_driver(args.rust, cases, **selection)
     mismatches = []
     for index, (case, reference, rust) in enumerate(zip(cases, expected, actual)):
         if reference != rust:
             op, pattern, data, template = case
             mismatches.append({"case": index, "operation": op, "pattern_hex": pattern.hex(), "input_hex": data.hex(), "template_hex": template.hex(), "reference": reference, "rust": rust})
-    environment = json.loads(subprocess.check_output([str(args.reference), *extra, "--environment"], text=True, timeout=30, shell=False))
-    rust_environment = json.loads(subprocess.check_output([str(args.rust), *extra, "--environment"], text=True, timeout=30, shell=False))
+    environment = driver_environment(args.reference, **selection)
+    rust_environment = driver_environment(args.rust, **selection)
     report = {"schema": 1, "kind": "functional-compatibility", "seed": args.seed, "random_cases": args.random_cases,
               "cases": len(cases), "mismatch_count": len(mismatches), "mismatches": mismatches,
               "reference_environment": environment, "host": platform.platform(),
