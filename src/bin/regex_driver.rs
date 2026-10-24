@@ -381,7 +381,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     return Err("Expected a benchmark workload on standard input".into());
                 }
                 let fields = line
-                    .trim_end_matches(|ch| ch == '\r' || ch == '\n')
+                    .trim_end_matches(['\r', '\n'])
                     .split('\t')
                     .map(str::to_owned)
                     .collect::<Vec<_>>();
