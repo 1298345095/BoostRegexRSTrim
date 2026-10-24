@@ -24,6 +24,14 @@ jobs:
           echo '__CARGO_LOCK_BEGIN__'
           cat Cargo.lock
           echo '__CARGO_LOCK_END__'
+      - name: Regenerate standalone consumer lockfile
+        shell: bash
+        run: |
+          cargo generate-lockfile --manifest-path tests/consumer/Cargo.toml
+          echo '__CONSUMER_LOCK_BEGIN__'
+          cat tests/consumer/Cargo.lock
+          echo '__CONSUMER_LOCK_END__'
+          cargo run --locked --manifest-path tests/consumer/Cargo.toml --offline
       - name: Check formatting and expose diff
         shell: bash
         run: |
