@@ -67,7 +67,7 @@ fn hex(bytes: &[u8]) -> String {
 
 fn unhex(value: &str) -> Result<Vec<u8>, String> {
     // Keep the original protocol errors instead of exposing hex crate errors.
-    if value.len() % 2 != 0 {
+    if !value.len().is_multiple_of(2) {
         return Err("hex field must have even length".into());
     }
     hex::decode(value).map_err(|_| "invalid hex field".to_owned())
@@ -133,19 +133,25 @@ fn request(line: &str, rules: &CharacterRules) -> Result<Value, String> {
             } else {
                 regex.captures(&input)
             };
-            result.map(|matched| json!({
-                "ok": true,
-                "match": matched.as_ref().map(match_json)
-            }))
+            result.map(|matched| {
+                json!({
+                    "ok": true,
+                    "match": matched.as_ref().map(match_json)
+                })
+            })
         }
-        "find_all" => regex.find_all(&input).map(|matches| json!({
-            "ok": true,
-            "matches": matches.iter().map(match_json).collect::<Vec<_>>()
-        })),
-        "replace" => regex.replace(&input, &template).map(|output| json!({
-            "ok": true,
-            "output_hex": hex(&output)
-        })),
+        "find_all" => regex.find_all(&input).map(|matches| {
+            json!({
+                "ok": true,
+                "matches": matches.iter().map(match_json).collect::<Vec<_>>()
+            })
+        }),
+        "replace" => regex.replace(&input, &template).map(|output| {
+            json!({
+                "ok": true,
+                "output_hex": hex(&output)
+            })
+        }),
         _ => return Err("unknown operation".into()),
     };
     Ok(result.unwrap_or_else(|error| error_json(&error)))
@@ -310,14 +316,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 rules = CharacterRules::with_lcid(lcid);
             }
             "--environment" => {
-                println!("{}", json!({
-                    "engine": "rust",
-                    "os": std::env::consts::OS,
-                    "arch": std::env::consts::ARCH,
-                    "debug_assertions": cfg!(debug_assertions),
-                    "measurements": cfg!(feature = "measurements"),
-                    "diagnostics": cfg!(feature = "diagnostics")
-                }));
+                println!(
+                    "{}",
+                    json!({
+                        "engine": "rust",
+                        "os": std::env::consts::OS,
+                        "arch": std::env::consts::ARCH,
+                        "debug_assertions": cfg!(debug_assertions),
+                        "measurements": cfg!(feature = "measurements"),
+                        "diagnostics": cfg!(feature = "diagnostics")
+                    })
+                );
                 return Ok(());
             }
             "--benchmark" | "--benchmark-check" => {
@@ -353,13 +362,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for line in io::stdin().lock().lines() {
         match request(line?.trim_end_matches('\r'), &rules) {
             Ok(output) => println!("{output}"),
-            Err(message) => println!("{}", json!({
-                "ok": false,
-                "phase": "protocol",
-                "code": null,
-                "position": null,
-                "message_hex": hex(message.as_bytes())
-            })),
+            Err(message) => println!(
+                "{}",
+                json!({
+                    "ok": false,
+                    "phase": "protocol",
+                    "code": null,
+                    "position": null,
+                    "message_hex": hex(message.as_bytes())
+                })
+            ),
         }
     }
     Ok(())
@@ -393,7 +405,9 @@ mod tests {
             r#"{"ok":true,"match":null}"#
         );
         assert_eq!(
-            request("replace\t61\t7861\tff", &rules).unwrap().to_string(),
+            request("replace\t61\t7861\tff", &rules)
+                .unwrap()
+                .to_string(),
             r#"{"ok":true,"output_hex":"78ff"}"#
         );
         assert_eq!(
@@ -403,11 +417,16 @@ mod tests {
                 "code": null,
                 "position": null,
                 "message_hex": hex(b"invalid hex field")
-            }).to_string(),
+            })
+            .to_string(),
             r#"{"ok":false,"phase":"protocol","code":null,"position":null,"message_hex":"696e76616c696420686578206669656c64"}"#
         );
         let invalid = request("compile\t28\t\t", &rules).unwrap().to_string();
-        assert!(invalid.starts_with(r#"{"ok":false,"phase":"compile","code":8,"position":1,"message_hex":""#));
+        assert!(
+            invalid.starts_with(
+                r#"{"ok":false,"phase":"compile","code":8,"position":1,"message_hex":""#
+            )
+        );
     }
 
     #[cfg(feature = "diagnostics")]
@@ -415,7 +434,11 @@ mod tests {
     fn accounting_fields_follow_the_unmodified_result() {
         let value = request("accounting_search\t61\t61\t", &CharacterRules::default()).unwrap();
         let wire = value.to_string();
-        assert!(wire.starts_with(r#"{"ok":true,"match":{"span":[0,1],"captures":[[0,1]]},"accounting":{"#));
+        assert!(
+            wire.starts_with(
+                r#"{"ok":true,"match":{"span":[0,1],"captures":[[0,1]]},"accounting":{"#
+            )
+        );
         assert!(wire.contains(r#""state_count":"#));
         assert!(wire.contains(r#""max_state_count":"#));
         assert!(wire.contains(r#""blocks_remaining_after_cleanup":"#));
