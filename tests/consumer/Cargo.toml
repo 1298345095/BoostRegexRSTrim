@@ -1,0 +1,10 @@
+[package]
+name = "standalone-regex-consumer"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+boost-regex-rs-trim = { path = "../.." }
+
+[workspace]

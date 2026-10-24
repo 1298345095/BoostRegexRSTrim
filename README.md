@@ -1,93 +1,194 @@
-# Pinned Boost.Regex 1.89
+# BoostRegexRSTrim
 
-The retained entry points compile `char` byte patterns with normal syntax,
-search with captures or an overall span, match complete inputs, iterate matches,
-and replace through an output iterator and the default string formatter.
-Their parser, matcher, formatter, error handling and transitive dependencies
-remain, including syntax selected by user-supplied patterns and replacements.
+A byte-oriented Rust port of the trimmed Boost.Regex 1.89 implementation retained
+in this repository. The Rust crate implements parsing, compilation, matching,
+captures, enumeration and replacement. The original C++ headers are the
+compatibility reference and are built only by the reference-test tools.
 
-The configuration is fixed to C++17, standalone headers, exceptions and threaded
-caches. Win32 byte traits remain the default on Windows; other targets retain
-the C++ locale traits (also selected by GCC on Windows, as upstream does).
-The original cache mutexes and platform-dependent memory block cache remain.
+Patterns, inputs, replacement templates and raw diagnostics are byte sequences.
+NUL and invalid UTF-8 are preserved. Positions are byte offsets into the original
+input, and an unmatched capture is distinct from a participating empty capture.
 
-Removed: ICU/Unicode and wide-character regex interfaces, MFC, concepts checks,
-POSIX and deprecated traits, C locale traits, token iterators, grep/merge/split,
-unused convenience overloads, user configuration, module/no-exception/non-threaded
-branches and unused helper functions. The bridge and its Rust API are unchanged.
+## Use the crate
 
-The function-level subset also omits legacy `reg_expression`, unused regex
-constructors/assignment overloads, comparison and stream operators, and capture
-string conversion APIs. Replacement formatting accepts the bridge's
-`std::string` with the compiled regex traits directly; callback/C-string
-dispatch, standalone formatting wrappers, fallback formatting traits and the
-string output adapter are removed. Embedded NULs still use explicit ranges.
+The package is `boost-regex-rs-trim`; its Rust import is `boost_regex_rs_trim`.
+For a checkout beside your application:
 
-Parsing enters the normal (Perl) parser directly. POSIX basic/Emacs parsing and
-its dedicated helpers are removed. Normal syntax still uses the original
-literal parser, inline options, named captures, recursion and matching states.
+```toml
+[dependencies]
+boost-regex-rs-trim = { path = "../BoostRegexRSTrim" }
+```
 
-Custom message catalogs are not exposed by the bridge. Their setters, loaders,
-name locks, custom error/class/collation tables and Win32 module-loading imports
-are removed. Default error strings, character classes, locale case mapping and
-collation remain. The C++ locale cache key retains the ctype and collate facets
-used by these operations; object-cache synchronization is unchanged.
+```rust
+use boost_regex_rs_trim::{Limits, Regex};
 
-Replacement uses the default Perl formatter only, so sed/conditional/literal
-format modes and first-only/no-copy options are removed. Normal-syntax matching
-uses Perl rules directly, without POSIX temporary results or longest-match
-selection. POSIX character classes remain supported. The unused matcher flag
-setters and non-random-access state-budget fallback are also removed.
-`match_dot_repeat_slow()` and its runtime fallbacks remain intact, including
-inline options that make dot repetitions stop at line separators.
+fn main() -> Result<(), boost_regex_rs_trim::Error> {
+    let regex = Regex::compile(b"(?<word>[a-z]+)", Limits::UNLIMITED)?;
+    let input = b"\xff\0abc 123";
+    let matched = regex.captures(input)?.expect("the word participates");
 
-The existing source patch in `boost/regex/v5/w32_regex_traits.hpp` remains: the ANSI
-class-table initializer calls `GetStringTypeExA` for each individual byte and
-stores zero on failure. Bulk classification of concatenated DBCS bytes can
-leave the table tail unwritten. This carries the project's accepted initialized
-byte-class policy and the existing native single-byte classification failure
-policy. The native lowercase map is unchanged; the unused `BOOST_NO_ANSI_APIS`
-fallback has been removed.
+    assert_eq!(matched.span(), 2..5);
+    assert_eq!(regex.named_capture(&matched, b"word"), Some(2..5));
+    assert_eq!(regex.replace(input, b"<$+{word}>")?, b"\xff\0<abc> 123");
+    Ok(())
+}
+```
 
-Header layout is consolidated for this single implementation. The public
-`boost/regex.hpp`, `boost/regex_fwd.hpp`, `boost/regex/pattern_except.hpp` and
-`boost/regex/regex_traits.hpp` contain their former v5 contents directly.
-`boost/regex/v5/regex_algorithms.hpp` groups matching, searching, iteration and
-replacement in dependency order. Iterator-category helpers live with the matcher,
-and copying uses `std::copy` directly instead of a workaround header. Parser,
-creator, matcher implementation, platform traits and cache headers remain split
-by responsibility; this reorganization does not change their algorithms.
+Run the examples with `cargo run --example bytes` and
+`cargo run --example limits`. The independent project in
+[`tests/consumer`](tests/consumer) demonstrates a path dependency and can build
+with `CXX=missing-cxx-compiler`: normal library use has no C++ build step.
 
-Unused configuration macros and empty export/no-exception markers are removed.
-Constants, fallthrough attributes, throws and string comparisons use C++17 syntax
-directly, and the internal namespace remains `re_detail_600`. Memory-block caching
-keeps both original implementations, selected directly by
-`ATOMIC_POINTER_LOCK_FREE`; the fixed cache size is 16 blocks. Platform locale
-selection, assertions, matching limits and Win32 declarations remain unchanged.
+| Operation | API | Result |
+| --- | --- | --- |
+| Compile | `Regex::new(pattern)` / `Regex::compile(pattern, limits)` | Immutable, cheaply cloned compiled expression |
+| Find a span | `find(input)` | `Option<Range<usize>>` |
+| Find captures | `captures(input)` | `Option<Match>`; capture zero is the whole match |
+| Test a search | `is_match(input)` | `bool` |
+| Match the whole input | `full_match(input)` | `Option<Match>` |
+| Enumerate | `find_all(input)` | Ordered `Vec<Match>` with the reference's empty-match retry |
+| Replace globally | `replace(input, template)` | `Vec<u8>` using the retained default Perl formatter |
 
-The retained platform traits provide all required Boost extensions directly.
-Custom-trait detection, fallback adapters and their private syntax/case helpers
-are removed. Unused length helpers, width tags, non-char helper overloads and
-match-result convenience overloads are also omitted. Named replacement captures
-still use the original char-range lookup. Core parser/matcher templates,
-long character sets, storage alignment and both
-dot-repetition paths remain.
+Every fallible operation returns `Result<_, Error>`. A successful search with no
+match returns `Ok(None)`; it is distinct from an engine or caller-limit error.
+Compiled expressions can be cloned and shared across threads. Each invocation
+keeps its own captures, backtracking records and computation counters.
 
-The replacement formatter reads the string's contiguous data range directly.
-Numeric and named-capture expansion no longer adapts generic iterators through
-temporary vectors. Explicit end pointers preserve empty replacements and embedded
-NUL bytes; output still uses the bridge's bounded iterator.
+## Syntax and replacement behavior
 
-The normal-syntax parser retains inline i/m/s/x options directly. Basic/Emacs
-mode tests, disabled-capture handling, subexpression source-position recording,
-non-throwing errors, newline-as-alternation and disabled character-class/escape
-branches are removed. Empty alternatives and incomplete repetition literals keep
-the upstream normal-syntax behavior. Long sets, named captures and recursion
-remain supported.
+The target is the normal Perl parser retained in this source snapshot. It
+includes inline `i/m/s/x` options; captures, branch-reset and named groups;
+greedy, lazy and possessive repeats; byte sets, POSIX classes and collating
+elements; backreferences; atomic groups; lookahead and accepted fixed-width
+lookbehind; recursion and subroutines; conditionals and DEFINE; control verbs;
+and `\K`. The [capability inventory](docs/capabilities.md) links these behaviors
+to the implementation tickets and identifies source-level accounting rules.
 
-Validate with `cargo test --workspace`,
-`scripts/test-boost-span-native-contract.ps1` (MSVC and clang-cl), and
-`scripts/test-regex-boost-oracle.ps1` against the full Boost 1.89 distribution
-above. Use `-BuildDirectory` for a fresh native build and `-TargetDirectory`
-for an independent Cargo/oracle directory. Keep the full oracle distribution
-outside this subset so it remains an independent behavior reference.
+Default replacement supports numbered captures such as `$1`, the complete
+match `$&`, named captures `$+{name}`, prefix/suffix forms, the retained
+last-capture forms, byte escapes and case conversion. The formatter follows this
+snapshot's treatment of incomplete and ambiguous templates; it is not a UTF-8
+string formatter. The accepted syntax is defined by the reference, including
+its edge cases, rather than by the syntax of another Rust regex crate.
+
+## Caller limits and errors
+
+`Limits` independently bounds `pattern`, `input`, `template`, `output` and
+`matches`. Its default is `Limits::UNLIMITED`, which imposes no application
+policy. Set limits appropriate to your caller:
+
+```rust
+use boost_regex_rs_trim::{Limits, Regex};
+
+fn main() -> Result<(), boost_regex_rs_trim::Error> {
+    let limits = Limits {
+        pattern: 4_096,
+        input: 1_048_576,
+        template: 4_096,
+        output: 2_097_152,
+        matches: 10_000,
+    };
+    let regex = Regex::compile(b"[a-z]+", limits)?;
+    assert!(regex.is_match(b"word")?);
+    Ok(())
+}
+```
+
+Collection and replacement failures return no partial result. Expressions stay
+usable after caller-limit and computation-limit errors.
+
+The source engine's computation limits remain active even with unlimited caller
+policy. Their dispatch counts, parser/creator nesting, nested matcher calls and
+virtual backtracking-block accounting are separate from Rust allocation sizes.
+See [ADR-0003](docs/adr/0003-api-and-resource-limits.md) and the inventory.
+
+`Error` exposes its `phase`, optional reference `code` and `position`, and
+caller-limit details. `raw_message()` returns the exact diagnostic bytes;
+`display_text()` and `Display` provide readable escaping. Use raw bytes for
+compatibility comparisons, since messages may contain NUL or invalid UTF-8.
+
+Match-start resets inside assertions can expose backwards or overlapping ranges.
+Search preserves those reference spans. When such ranges would require an
+invalid forward copy during replacement, Rust returns an execution error with
+no reference code; the C++ replacement operation has undefined behavior there.
+The [reference notes](docs/reference.md) describe the corresponding bounded
+enumeration case.
+
+## Platform character rules
+
+The six initial native targets are:
+
+| OS and native implementation | x64 | ARM64 |
+| --- | --- | --- |
+| Windows / MSVC | `x86_64-pc-windows-msvc` | `aarch64-pc-windows-msvc` |
+| Linux / glibc | `x86_64-unknown-linux-gnu` | `aarch64-unknown-linux-gnu` |
+| macOS / system libc | `x86_64-apple-darwin` | `aarch64-apple-darwin` |
+
+Unix defaults to the classic C++ locale, independently of `LANG` and `LC_ALL`.
+`CharacterRules::with_locale(name)` selects an installed native locale explicitly
+without changing process-global locale state. Windows defaults to the user's
+LCID; `CharacterRules::with_lcid(lcid)` selects it explicitly. Pass a snapshot to
+`Regex::with_character_rules`. Byte classification, case conversion and
+collation follow the relevant target; native signed-`char` differences in the
+retained numeric escape parser are also preserved.
+
+OS APIs supply locale behavior. The default crate has no external Rust crate
+dependencies. Optional `measurements` tooling uses the pure Rust `libc` bindings
+on Unix to obtain the OS resource-usage structure; it adds no separately built
+C/C++ implementation library. Optional `diagnostics` exposes `Regex::diagnose`
+and the reference-compatible logical counters used by the accounting tests.
+
+## Build and verify
+
+Use the stable Rust toolchain selected by `rust-toolchain.toml`:
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo test --doc
+```
+
+Functional comparison additionally needs Python 3 and a native C++17 compiler:
+
+```sh
+python tools/build_reference.py
+python tools/build_reference.py --baseline
+python tools/reference_selftest.py --baseline target/reference/reference-baseline
+cargo build --bin regex_driver --features diagnostics
+python tools/differential.py --random-cases 3000
+python tools/character_differential.py --reference target/reference/reference --rust target/debug/regex_driver
+python tools/accounting_differential.py
+python tools/benchmark.py --check --reference target/reference/reference-baseline --rust target/debug/regex_driver
+```
+
+On Windows, append `.exe` to the executable paths passed to Python tools. When
+using `CARGO_BUILD_TARGET`, pass the Rust driver from
+`target/<triple>/debug/regex_driver[.exe]` with `--rust`.
+
+The [functional workflow](.github/workflows/functional.yml) runs natively on all
+six targets, builds an uninstrumented reference alongside the diagnostic
+observer, compares results and errors, exercises character scenarios and limits,
+and uploads JSON evidence. [Reference documentation](docs/reference.md) describes
+the byte protocol and why the raw-error observer preserves bytes beyond NUL.
+The tracked `boost/` headers remain unchanged.
+
+Performance tooling is provided in [`tools/benchmark.py`](tools/benchmark.py).
+Its default plan and `--check` mode collect no timing or memory measurements.
+Measurements and regression thresholds remain pending a user-designated machine,
+as required by [ADR-0004](docs/adr/0004-performance-baseline-environment.md).
+See the [measurement procedure](docs/performance.md). Integration into an
+external application is a later step, separate from this standalone crate.
+
+## Source and license
+
+The retained C++ snapshot removes wide-character/ICU, POSIX basic/Emacs parsing,
+unused convenience APIs and nondefault replacement modes. Its normal parser,
+matcher, formatter, errors and platform traits remain the behavior reference.
+The Windows source retains its per-byte `GetStringTypeExA` classification patch
+and zero-on-failure policy. The Rust implementation ports this snapshot rather
+than substituting another regex engine.
+
+The code is distributed under the [Boost Software License 1.0](LICENSE_1_0.txt).
+Architecture and scope decisions are recorded in [`GLOSSARY.md`](GLOSSARY.md)
+and [`docs/adr`](docs/adr).

@@ -23,7 +23,7 @@ include directory explicitly and never downloads upstream Boost.
 The build records the exact compiler command, compiler identification, operating
 system, runtime, architecture, runner image identifiers, locale environment,
 effective traits locale, `char` signedness, engine constants, original saved-state
-sizes, and SHA-256 hashes of every retained header in
+sizes, and SHA-256 hashes of the executable, driver, and every retained header in
 `target/reference/build-info.json`. The uninstrumented build has a separate
 `build-info-baseline.json`. These reports are functional evidence, not performance
 measurements. An actual six-target workflow run is required before claiming
@@ -62,6 +62,12 @@ Offsets are byte offsets from the beginning of the original input; endpoints
 are exclusive. Capture 0 is included. An unmatched capture is `null`; an empty
 participating capture is `[offset,offset]`.
 
+The retained `\K` operation inside assertions can produce a whole-match span
+whose start exceeds its end. Only equal endpoints count as an empty match for
+iterator advancement. Some such patterns repeat without progress; regression
+tests observe their first matches through a caller-selected match-count limit
+instead of performing unbounded collection.
+
 Error phases are `compile`, `execute`, and `protocol`. A `boost::regex_error`
 has its numeric retained error code and position. Non-regex exceptions and
 protocol errors have `null` for both fields. `message_hex` is the raw error
@@ -99,13 +105,78 @@ headers are never written. Every replacement must match exactly once, otherwise
 the build fails so a changed source cannot silently invalidate the observer.
 
 The `std::runtime_error` constructor, `what()`, code, position, throw/copy path,
-parser, matcher, formatter, and engine computation limits are unchanged. The
+parser, matcher execution, formatter, and engine computation limits are unchanged. The
 observer adds error-message storage only; it is not suitable for allocation or
 memory-performance comparisons. `--baseline` builds the identical driver against
 the original headers without the observer. The selftest compares both builds,
 including NUL-containing diagnostics: existing fields and observable `what()`
 prefixes must match, while the observed message additionally preserves its full
 length. Performance tooling must use an uninstrumented reference.
+
+## Compiled states and computation accounting
+
+Additional diagnostic modes expose the retained implementation for structural
+and boundary comparisons:
+
+```sh
+target/reference/reference --program 2861292b
+target/reference/reference --accounting full 6162 6162
+```
+
+`--program PATTERN_HEX` returns the pattern byte length, capture count, initial
+restart strategy, nullability, 256-byte initial start map, and every reachable
+compiled state. State `kind` is the original numeric syntax-element enum.
+`id`, `next`, and `alt` identify byte offsets from the first state, with `null`
+for absent links. They are addresses relative to that compiled allocation,
+not stable identifiers across compiler or architecture changes. Every non-null
+link points to a state included in the dump.
+
+State-specific fields retain capture/backstep indices, literal bytes, case
+flags, set maps or long-set members, repeat bounds and IDs, leading/greedy flags,
+branch nullability masks, and control-verb actions. Maps and strings use hex;
+the original branch-map bits and numeric masks are preserved. Compilation
+failure returns the same complete raw error as the ordinary `compile` request.
+This mode works with both observed and uninstrumented executables.
+
+`--accounting search|full PATTERN_HEX INPUT_HEX` returns the ordinary match or
+execution error object plus:
+
+```json
+{
+  "accounting": {
+    "state_count": 3,
+    "max_state_count": 100008,
+    "blocks_remaining_after_cleanup": 1024
+  }
+}
+```
+
+These values belong to the single completed matcher call, including failed
+calls. The block field is the original remaining-extra-block counter after
+unwinding and cleanup; it is not peak block consumption or allocated memory.
+Compile errors occur before a matcher exists and have no `accounting` field.
+For an unrelated exception before counter initialization, `accounting` is null.
+
+The observed build adds three const accessors to the generated
+`boost/regex/v5/perl_matcher.hpp` overlay for the existing `state_count`,
+`max_state_count`, and `used_block_count` members. One exact source anchor must
+match. No data members, writes, execution hooks, or layout changes are added to
+the matcher. Original and overlay hashes are recorded in
+`accounting_observer` build metadata. The uninstrumented executable rejects
+`--accounting`. The Rust test driver provides the same mode when built with
+`--features diagnostics`; the ordinary public API does not need that feature.
+
+For large inputs, use `accounting_search` or `accounting_full` as the operation
+in the four-field TSV protocol. Pattern and input remain hex, and the template
+field is decoded but unused. Each request produces exactly the same object as
+the equivalent `--accounting` command. This permits storage-limit tests larger
+than a platform's command-line length limit and multiple diagnostic requests in
+one process. These two operations require the same observed/diagnostics builds
+as the one-shot mode.
+
+See [capabilities.md](capabilities.md) for source locations and original budget
+rules. Measurement-free benchmark checks and designated-machine performance
+commands are documented separately in [performance.md](performance.md).
 
 ## Runtime conditions
 
