@@ -385,7 +385,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .split('\t')
                     .map(str::to_owned)
                     .collect::<Vec<_>>();
-                println!("{}", benchmark(arg == "--benchmark-stdin", &fields, &rules)?);
+                println!(
+                    "{}",
+                    benchmark(arg == "--benchmark-stdin", &fields, &rules)?
+                );
                 return Ok(());
             }
             #[cfg(feature = "diagnostics")]
