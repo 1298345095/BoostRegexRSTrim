@@ -132,10 +132,12 @@ LCID; `CharacterRules::with_lcid(lcid)` selects it explicitly. Pass a snapshot t
 collation follow the relevant target; native signed-`char` differences in the
 retained numeric escape parser are also preserved.
 
-OS APIs supply locale behavior. The default crate has no external Rust crate
-dependencies. Optional `measurements` tooling uses the pure Rust `libc` bindings
-on Unix to obtain the OS resource-usage structure; it adds no separately built
-C/C++ implementation library. Optional `diagnostics` exposes `Regex::diagnose`
+OS APIs supply locale behavior. Windows bindings use `windows-sys`, preserving
+the same ANSI APIs. The test driver uses `hex` and `serde_json` for its wire
+protocol (including its original JSON field order). These are Rust dependencies;
+no extra C/C++ implementation library is built or linked. Optional
+`measurements` tooling uses `libc` bindings on Unix to obtain the OS
+resource-usage structure. Optional `diagnostics` exposes `Regex::diagnose`
 and the reference-compatible logical counters used by the accounting tests.
 
 ## Build and verify
