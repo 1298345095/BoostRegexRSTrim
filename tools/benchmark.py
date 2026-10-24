@@ -149,7 +149,11 @@ def load_build_info(args):
 
 def prepare_report(args, metadata, workloads):
     reference, rust = args.reference, args.rust
-    mode = "measured" if args.run else "plumbing-check" if args.check else "dry-run"
+    mode = "dry-run"
+    if args.check:
+        mode = "plumbing-check"
+    if args.run:
+        mode = "measured"
     return {
         "schema_version": 1, "mode": mode,
         "performance_acceptance": "pending_user_baselines_and_thresholds",

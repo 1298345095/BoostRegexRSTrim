@@ -133,7 +133,7 @@ class ToolPathTests(unittest.TestCase):
         for locale in ("", "--benchmark", "-x", "en_US\n--environment", "C\0", 123):
             with self.subTest(locale=locale), self.assertRaises(ValueError):
                 character_options(locale=locale)
-        for lcid in ("0", "-1", "--environment", "1041 extra", "0x", "4294967296", "0x100000000", 1041):
+        for lcid in ("0", "-1", "--environment", "1041 extra", "0x", "4294967296", "0x100000000", "１２３", "١٢٣", 1041):
             with self.subTest(lcid=lcid), self.assertRaises(ValueError):
                 character_options(lcid=lcid)
 

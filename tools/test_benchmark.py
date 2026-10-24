@@ -70,14 +70,16 @@ class BenchmarkTests(unittest.TestCase):
         for value in ("0", "00 00", "00\n", "gg", "--run", None, 12):
             with self.subTest(value=value):
                 item = {**benchmark.WORKLOADS[0], "pattern_hex": value}
+                path = self.write_workloads([item])
                 with self.assertRaises(ValueError):
-                    benchmark.load_workloads(self.write_workloads([item]))
+                    benchmark.load_workloads(path)
 
     def test_workloads_reject_duplicates_and_invalid_shapes(self):
         item = benchmark.WORKLOADS[0]
         for values in ({}, [], [item, item], [None], [{**item, "extra": "field"}]):
+            path = self.write_workloads(values)
             with self.subTest(values=values), self.assertRaises(ValueError):
-                benchmark.load_workloads(self.write_workloads(values))
+                benchmark.load_workloads(path)
 
     def test_run_without_designated_machine_starts_no_process(self):
         with mock.patch.object(subprocess, "run") as run, \

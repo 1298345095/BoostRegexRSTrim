@@ -131,6 +131,25 @@ def character_scenarios(locales, lcids, default_only):
     return scenarios
 
 
+def compare_scenario(label, arguments, requests, reference, rust):
+    """Compare one locale or LCID with the existing deterministic corpus."""
+    scenario = {"name": label, "arguments": arguments, "mismatches": []}
+    try:
+        expected = run(reference, arguments, requests)
+        actual = run(rust, arguments, requests)
+        for request, cpp, port in zip(requests, expected, actual):
+            if cpp != port:
+                difference = {"request": request, "reference": cpp, "rust": port}
+                if request["operation"] == "replace" and len(scenario["mismatches"]) < 3:
+                    difference["minimized_request"] = minimize_template(reference, rust, arguments, request)
+                scenario["mismatches"].append(difference)
+        scenario["status"] = "failed" if scenario["mismatches"] else "passed"
+    except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as error:
+        scenario["status"] = "environment-or-protocol-failure"
+        scenario["error"] = str(error)
+    return scenario
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, default=Path("target/reference/reference" + (".exe" if os.name == "nt" else "")))
@@ -155,20 +174,7 @@ def main():
               "cases_per_scenario": len(requests), "scenarios": [],
               "performance_acceptance": "not measured by functional tests"}
     for label, arguments in scenarios:
-        scenario = {"name": label, "arguments": arguments, "mismatches": []}
-        try:
-            expected = run(reference, arguments, requests)
-            actual = run(rust, arguments, requests)
-            for request, cpp, port in zip(requests, expected, actual):
-                if cpp != port:
-                    difference = {"request": request, "reference": cpp, "rust": port}
-                    if request["operation"] == "replace" and len(scenario["mismatches"]) < 3:
-                        difference["minimized_request"] = minimize_template(reference, rust, arguments, request)
-                    scenario["mismatches"].append(difference)
-            scenario["status"] = "failed" if scenario["mismatches"] else "passed"
-        except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as error:
-            scenario["status"] = "environment-or-protocol-failure"
-            scenario["error"] = str(error)
+        scenario = compare_scenario(label, arguments, requests, reference, rust)
         report["scenarios"].append(scenario)
         print(f"{label}: {scenario['status']} ({len(scenario['mismatches'])} differences)", flush=True)
     report["status"] = "passed" if all(s["status"] == "passed" for s in report["scenarios"]) else "failed"
