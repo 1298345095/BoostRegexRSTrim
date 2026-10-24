@@ -662,6 +662,8 @@ mod unix {
 #[cfg(windows)]
 #[allow(unsafe_code)]
 mod windows {
+    use std::ffi::c_int;
+
     // Use the exact same ANSI functions; the selected API and failure behavior
     // are part of the compatibility contract for Windows byte rules.
     pub(super) use windows_sys::Win32::Globalization::{
