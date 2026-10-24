@@ -47,17 +47,53 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
       - name: Select MSVC target
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.msvc_arch }}
+      - name: Record Rust toolchain
+        run: rustc --version --verbose
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check library and examples without C++ reference
+        run: cargo check --all-targets
+      - name: Check optional diagnostic and measurement tooling
+        run: cargo check --all-targets --all-features
+      - name: Standalone consumer without a C++ compiler
+        env:
+          CXX: missing-cxx-compiler
+        run: cargo run --manifest-path tests/consumer/Cargo.toml --target ${{ matrix.target }} --offline
+      - name: Unit, integration, sharing, and caller-limit tests
+        run: cargo test --all-targets
+      - name: Documentation tests
+        run: cargo test --doc
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Build byte protocol caller
+        run: cargo build --bin regex_driver
       - name: Build observed C++ reference
         run: python tools/build_reference.py
       - name: Build uninstrumented baseline
         run: python tools/build_reference.py --baseline
       - name: Validate reference byte protocol and observer
         run: python tools/reference_selftest.py --baseline target/reference/reference-baseline${{ matrix.exe }}
+      - name: Functional differential comparison
+        run: python tools/differential.py --reference target/reference/reference${{ matrix.exe }} --rust target/${{ matrix.target }}/debug/regex_driver${{ matrix.exe }} --report reports/differential.json
+      - name: Character-rule scenarios
+        run: python tools/character_differential.py --reference target/reference/reference${{ matrix.exe }} --rust target/${{ matrix.target }}/debug/regex_driver${{ matrix.exe }} --report reports/characters.json
+      - name: Validate performance tooling without measurements
+        run: python tools/benchmark.py --check --reference target/reference/reference-baseline${{ matrix.exe }} --rust target/${{ matrix.target }}/debug/regex_driver${{ matrix.exe }} --report reports/benchmark-plumbing.json
+      - name: Build accounting diagnostic caller
+        run: cargo build --features diagnostics --bin regex_driver
+      - name: Rust computation-accounting boundary tests
+        run: cargo test --features diagnostics --test accounting
+      - name: Compare original computation accounting and boundaries
+        run: python tools/accounting_differential.py --reference target/reference/reference${{ matrix.exe }} --rust target/${{ matrix.target }}/debug/regex_driver${{ matrix.exe }} --report reports/accounting.json
       - name: Retained C++ source unchanged
         run: git diff --exit-code -- boost
       - name: Upload functional evidence and environment

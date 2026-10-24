@@ -1,0 +1,28 @@
+[package]
+name = "boost-regex-rs-trim"
+version = "0.1.0"
+edition = "2024"
+license = "BSL-1.0"
+description = "A byte-oriented Rust port of this repository's trimmed Boost.Regex implementation"
+repository = "https://github.com/1298345095/BoostRegexRSTrim"
+readme = "README.md"
+
+[lib]
+name = "boost_regex_rs_trim"
+
+[features]
+diagnostics = []
+measurements = ["dep:libc"]
+
+[target.'cfg(unix)'.dependencies]
+libc = { version = "0.2", optional = true }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+
+[profile.release]
+debug = 1

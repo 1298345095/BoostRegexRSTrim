@@ -122,6 +122,8 @@ def main():
     subprocess.run(command, cwd=ROOT, check=True)
     metadata = {
         "profile": args.profile,
+        "executable_sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+        "driver_sha256": hashlib.sha256(Path(source).read_bytes()).hexdigest(),
         "build_command": command,
         "compiler": capture(compiler if msvc else compiler + ["--version"]),
         "system": platform.platform(),

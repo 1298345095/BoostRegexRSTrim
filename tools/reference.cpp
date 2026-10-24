@@ -117,8 +117,17 @@ void match(std::ostream &out, const boost::cmatch &found, const char *base) {
   out << "]}";
 }
 
+void accounting(std::ostream &out, const std::string &operation,
+                const std::string &pattern_hex, const std::string &input_hex);
+
 void execute(std::ostream &out, const std::vector<std::string> &request) {
   const auto &operation = request[0];
+  if (operation == "accounting_search" || operation == "accounting_full") {
+    (void)unhex(request[3]);
+    accounting(out, operation == "accounting_full" ? "full" : "search",
+               request[1], request[2]);
+    return;
+  }
   if (operation != "compile" && operation != "search" && operation != "full" &&
       operation != "find_all" && operation != "replace")
     throw std::invalid_argument("Unknown operation");
@@ -332,7 +341,7 @@ void program(const std::string &encoded_pattern) {
         for (unsigned i = 0; i < set->cequivalents; ++i) {
           if (i) std::cout << ',';
           const char *start = p;
-          while (*p) ++p;
+          do { ++p; } while (*p);
           std::cout << '"' << hex(std::string(start, p)) << '"';
           ++p;
         }
@@ -382,7 +391,7 @@ void program(const std::string &encoded_pattern) {
 std::uint64_t peak_rss_bytes() {
 #ifdef _WIN32
   PROCESS_MEMORY_COUNTERS counters{};
-  if (!K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)))
+  if (!K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, static_cast<DWORD>(sizeof(counters))))
     throw std::runtime_error("Unable to read process peak working set");
   return static_cast<std::uint64_t>(counters.PeakWorkingSetSize);
 #else
@@ -477,8 +486,8 @@ void benchmark(bool measured, const std::string &operation,
   }
 }
 
-void accounting(const std::string &operation, const std::string &pattern_hex,
-                const std::string &input_hex) {
+void accounting(std::ostream &out, const std::string &operation,
+                const std::string &pattern_hex, const std::string &input_hex) {
   const char *phase = "protocol";
   try {
 #ifdef BOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER
@@ -512,13 +521,13 @@ void accounting(const std::string &operation, const std::string &pattern_hex,
       error(result, "execute", ex.what());
     }
     const auto json = result.str();
-    std::cout << json.substr(0, json.size() - 1) << ",\"accounting\":";
+    out << json.substr(0, json.size() - 1) << ",\"accounting\":";
     if (counters_initialized) {
-      std::cout << "{\"state_count\":" << matcher.reference_state_count()
-                << ",\"max_state_count\":" << matcher.reference_max_state_count()
-                << ",\"blocks_remaining_after_cleanup\":" << matcher.reference_used_block_count() << '}';
-    } else std::cout << "null";
-    std::cout << "}\n";
+      out << "{\"state_count\":" << matcher.reference_state_count()
+          << ",\"max_state_count\":" << matcher.reference_max_state_count()
+          << ",\"blocks_remaining_after_cleanup\":" << matcher.reference_used_block_count() << '}';
+    } else out << "null";
+    out << '}';
 #else
     (void)operation;
     (void)pattern_hex;
@@ -526,11 +535,9 @@ void accounting(const std::string &operation, const std::string &pattern_hex,
     throw std::invalid_argument("Accounting requires the observed reference build");
 #endif
   } catch (const boost::regex_error &ex) {
-    error(std::cout, phase, raw_message(ex), &ex);
-    std::cout << '\n';
+    error(out, phase, raw_message(ex), &ex);
   } catch (const std::exception &ex) {
-    error(std::cout, phase, ex.what());
-    std::cout << '\n';
+    error(out, phase, ex.what());
   }
 }
 } // namespace
@@ -561,7 +568,8 @@ int main(int argc, char **argv) {
         benchmark(arg == "--benchmark", argv[i + 1], argv[i + 2], argv[i + 3], argv[i + 4], argv[i + 5]);
         return 0;
       } else if (arg == "--accounting" && i + 3 < argc) {
-        accounting(argv[i + 1], argv[i + 2], argv[i + 3]);
+        accounting(std::cout, argv[i + 1], argv[i + 2], argv[i + 3]);
+        std::cout << '\n';
         return 0;
       } else {
         throw std::invalid_argument("Usage: reference [--locale NAME | --lcid NUMBER] [--environment]");
