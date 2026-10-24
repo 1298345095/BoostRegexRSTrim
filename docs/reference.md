@@ -29,6 +29,32 @@ sizes, and SHA-256 hashes of the executable, driver, and every retained header i
 measurements. An actual six-target workflow run is required before claiming
 six-target acceptance.
 
+## Comparison-tool paths
+
+Run the comparison scripts from this checkout. `differential.py`,
+`character_differential.py`, `accounting_differential.py`, and `benchmark.py`
+accept engine executables only under this checkout's `target/` directory,
+named `reference`, `reference-baseline`, or `regex_driver` (with `.exe` on
+Windows). Target triples and other build subdirectories are supported. Use the
+normal build commands to produce these artifacts; an executable path is never
+resolved through `PATH` or a shell.
+
+Generated `--report` paths must be `.json` files under `reports/`. Custom workload
+and build-metadata input files must be inside the checkout. Absolute paths are
+accepted within these boundaries. Paths are canonicalized before use, including
+symlink resolution, and invalid selections fail before engine execution or
+report creation. This prevents a mistaken CLI argument from executing an
+unrelated system command or overwriting source files. It does not sandbox an
+untrusted build artifact or defend against another process changing files
+concurrently.
+
+The Python regression suite checks these boundaries and pins the original
+functional and character corpora by request-stream SHA-256:
+
+```sh
+python -m unittest discover -s tools -p "test_*.py"
+```
+
 ## Byte protocol, version 1
 
 The driver reads one request per line. A request consists of exactly four fields

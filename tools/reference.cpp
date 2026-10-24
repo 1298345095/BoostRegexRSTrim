@@ -16,6 +16,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #ifdef _WIN32
@@ -23,7 +24,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <psapi.h>
+#include <Psapi.h>
 #else
 #include <sys/resource.h>
 #endif
@@ -31,6 +32,13 @@
 #include <boost/regex.hpp>
 
 namespace {
+namespace detail = boost::BOOST_REGEX_DETAIL_NS;
+
+class driver_io_error : public std::runtime_error {
+public:
+  using std::runtime_error::runtime_error;
+};
+
 #ifdef BOOST_REGEX_USE_WIN32_LOCALE
 unsigned long selected_lcid = 0;
 #endif
@@ -46,7 +54,7 @@ struct reference_traits : boost::regex_traits<char> {
 using reference_regex = boost::basic_regex<char, reference_traits>;
 using reference_iterator = boost::regex_iterator<const char *, char, reference_traits>;
 
-std::string hex(const std::string &bytes) {
+std::string hex(std::string_view bytes) {
   static constexpr char digits[] = "0123456789abcdef";
   std::string result;
   result.reserve(bytes.size() * 2);
@@ -64,7 +72,7 @@ unsigned nibble(char c) {
   throw std::invalid_argument("Invalid hexadecimal request byte");
 }
 
-std::string unhex(const std::string &value) {
+std::string unhex(std::string_view value) {
   if (value.size() % 2) throw std::invalid_argument("Odd hexadecimal request length");
   std::string result;
   result.reserve(value.size() / 2);
@@ -73,12 +81,12 @@ std::string unhex(const std::string &value) {
   return result;
 }
 
-std::vector<std::string> fields(const std::string &line) {
+std::vector<std::string> fields(std::string_view line) {
   std::vector<std::string> result;
   std::size_t start = 0;
   for (;;) {
     const auto end = line.find('\t', start);
-    result.push_back(line.substr(start, end - start));
+    result.emplace_back(line.substr(start, end - start));
     if (end == std::string::npos) break;
     start = end + 1;
   }
@@ -86,15 +94,15 @@ std::vector<std::string> fields(const std::string &line) {
   return result;
 }
 
-void error(std::ostream &out, const char *phase, const std::string &message,
+void error(std::ostream &out, const char *phase, std::string_view message,
            const boost::regex_error *detail = nullptr) {
-  out << "{\"ok\":false,\"phase\":\"" << phase << "\",\"code\":";
+  out << R"({"ok":false,"phase":")" << phase << R"(","code":)";
   if (detail) out << static_cast<unsigned>(detail->code());
   else out << "null";
-  out << ",\"position\":";
+  out << R"(,"position":)";
   if (detail) out << detail->position();
   else out << "null";
-  out << ",\"message_hex\":\"" << hex(message) << "\"}";
+  out << R"(,"message_hex":")" << hex(message) << R"("})";
 }
 
 std::string raw_message(const boost::regex_error &ex) {
@@ -106,8 +114,8 @@ std::string raw_message(const boost::regex_error &ex) {
 }
 
 void match(std::ostream &out, const boost::cmatch &found, const char *base) {
-  out << "{\"span\":[" << found[0].first - base << ',' << found[0].second - base
-      << "],\"captures\":[";
+  out << R"({"span":[)" << found[0].first - base << ',' << found[0].second - base
+      << R"(],"captures":[)";
   for (std::size_t i = 0; i < found.size(); ++i) {
     if (i) out << ',';
     if (found[i].matched)
@@ -145,7 +153,7 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
     return;
   }
   if (operation == "compile") {
-    out << "{\"ok\":true,\"mark_count\":" << expression.mark_count() << '}';
+    out << R"({"ok":true,"mark_count":)" << expression.mark_count() << '}';
     return;
   }
   // Buffer the entire answer so failures cannot leave a partial JSON response.
@@ -157,9 +165,9 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
       std::string output;
       boost::regex_replace(std::back_inserter(output), first, last, expression,
                            replacement);
-      result << "{\"ok\":true,\"output_hex\":\"" << hex(output) << "\"}";
+      result << R"({"ok":true,"output_hex":")" << hex(output) << R"("})";
     } else if (operation == "find_all") {
-      result << "{\"ok\":true,\"matches\":[";
+      result << R"({"ok":true,"matches":[)";
       bool comma = false;
       for (reference_iterator i(first, last, expression), end; i != end; ++i) {
         if (comma) result << ',';
@@ -172,7 +180,7 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
       const bool matched = operation == "full"
           ? boost::regex_match(first, last, found, expression)
           : boost::regex_search(first, last, found, expression);
-      result << "{\"ok\":true,\"match\":";
+      result << R"({"ok":true,"match":)";
       if (matched) match(result, found, first);
       else result << "null";
       result << '}';
@@ -189,200 +197,220 @@ void environment() {
   reference_regex expression;
   const std::string pattern = "a";
   expression.assign(pattern.data(), pattern.data() + pattern.size());
-  std::cout << "{\"pointer_bits\":" << sizeof(void *) * 8
-            << ",\"char_signed\":" << (std::numeric_limits<char>::is_signed ? "true" : "false");
+  std::cout << R"({"pointer_bits":)" << sizeof(void *) * 8
+            << R"(,"char_signed":)" << (std::numeric_limits<char>::is_signed ? "true" : "false");
 #ifdef BOOST_REGEX_USE_WIN32_LOCALE
-  std::cout << ",\"traits\":\"win32\",\"locale_id\":"
+  std::cout << R"(,"traits":"win32","locale_id":)"
             << expression.get_traits().getloc();
 #else
-  std::cout << ",\"traits\":\"cpp_locale\",\"locale_name_hex\":\""
+  std::cout << R"(,"traits":"cpp_locale","locale_name_hex":")"
             << hex(expression.get_traits().getloc().name()) << '"';
 #endif
 #ifdef _MSC_VER
-  std::cout << ",\"msvc_version\":" << _MSC_VER;
+  std::cout << R"(,"msvc_version":)" << _MSC_VER;
 #endif
 #ifdef __clang_version__
-  std::cout << ",\"clang_version_hex\":\"" << hex(__clang_version__) << '"';
+  std::cout << R"(,"clang_version_hex":")" << hex(__clang_version__) << '"';
 #elif defined(__VERSION__)
-  std::cout << ",\"compiler_version_hex\":\"" << hex(__VERSION__) << '"';
+  std::cout << R"(,"compiler_version_hex":")" << hex(__VERSION__) << '"';
 #endif
-  std::cout << ",\"cplusplus\":" << __cplusplus
-            << ",\"state_limit\":" << BOOST_REGEX_MAX_STATE_COUNT
-            << ",\"block_size\":" << BOOST_REGEX_BLOCKSIZE
-            << ",\"max_blocks\":" << BOOST_REGEX_MAX_BLOCKS
-            << ",\"creator_depth\":" << BOOST_REGEX_MAX_RECURSION_DEPTH;
-  namespace detail = boost::BOOST_REGEX_DETAIL_NS;
-  std::cout << ",\"saved_state_bytes\":{\"base\":" << sizeof(detail::saved_state)
-            << ",\"capture\":" << sizeof(detail::saved_matched_paren<const char *>)
-            << ",\"position\":" << sizeof(detail::saved_position<const char *>)
-            << ",\"assertion\":" << sizeof(detail::saved_assertion<const char *>)
-            << ",\"repeater\":" << sizeof(detail::saved_repeater<const char *>)
-            << ",\"extra_block\":" << sizeof(detail::saved_extra_block)
-            << ",\"single_repeat\":" << sizeof(detail::saved_single_repeat<const char *>)
-            << ",\"recursion\":" << sizeof(detail::saved_recursion<boost::cmatch>)
-            << ",\"case\":" << sizeof(detail::saved_change_case) << '}';
-  std::cout << ",\"match_results_bytes\":" << sizeof(boost::cmatch);
+  std::cout << R"(,"cplusplus":)" << __cplusplus
+            << R"(,"state_limit":)" << BOOST_REGEX_MAX_STATE_COUNT
+            << R"(,"block_size":)" << BOOST_REGEX_BLOCKSIZE
+            << R"(,"max_blocks":)" << BOOST_REGEX_MAX_BLOCKS
+            << R"(,"creator_depth":)" << BOOST_REGEX_MAX_RECURSION_DEPTH;
+  std::cout << R"(,"saved_state_bytes":{"base":)" << sizeof(detail::saved_state)
+            << R"(,"capture":)" << sizeof(detail::saved_matched_paren<const char *>)
+            << R"(,"position":)" << sizeof(detail::saved_position<const char *>)
+            << R"(,"assertion":)" << sizeof(detail::saved_assertion<const char *>)
+            << R"(,"repeater":)" << sizeof(detail::saved_repeater<const char *>)
+            << R"(,"extra_block":)" << sizeof(detail::saved_extra_block)
+            << R"(,"single_repeat":)" << sizeof(detail::saved_single_repeat<const char *>)
+            << R"(,"recursion":)" << sizeof(detail::saved_recursion<boost::cmatch>)
+            << R"(,"case":)" << sizeof(detail::saved_change_case) << '}';
+  std::cout << R"(,"match_results_bytes":)" << sizeof(boost::cmatch);
 #ifdef BOOST_REGEX_REFERENCE_RAW_OBSERVER
-  std::cout << ",\"raw_error_observer\":true";
+  std::cout << R"(,"raw_error_observer":true)";
 #else
-  std::cout << ",\"raw_error_observer\":false";
+  std::cout << R"(,"raw_error_observer":false)";
 #endif
   std::cout << "}\n";
 }
 
+bool has_alternative(detail::syntax_element_type type) {
+  return type == detail::syntax_element_jump || type == detail::syntax_element_alt ||
+         type == detail::syntax_element_rep || type == detail::syntax_element_dot_rep ||
+         type == detail::syntax_element_char_rep || type == detail::syntax_element_short_set_rep ||
+         type == detail::syntax_element_long_set_rep || type == detail::syntax_element_recurse;
+}
+
+using program_states = std::map<std::uintptr_t, const detail::re_syntax_base *>;
+
+program_states collect_program_states(const detail::re_syntax_base *first) {
+  program_states states;
+  std::vector pending{first};
+  while (!pending.empty()) {
+    const auto *state = pending.back();
+    pending.pop_back();
+    if (!state || !states.emplace(reinterpret_cast<std::uintptr_t>(state), state).second)
+      continue;
+    pending.push_back(state->next.p);
+    if (has_alternative(state->type))
+      pending.push_back(static_cast<const detail::re_jump *>(state)->alt.p);
+  }
+  return states;
+}
+
+void program_address(std::ostream &out, const detail::re_syntax_base *state,
+                     std::uintptr_t origin) {
+  if (state) out << reinterpret_cast<std::uintptr_t>(state) - origin;
+  else out << "null";
+}
+
+void program_byte_map(std::ostream &out, const unsigned char *map) {
+  out << hex(std::string_view(reinterpret_cast<const char *>(map), 256));
+}
+
+void program_strings(std::ostream &out, const char *&data, unsigned count,
+                     unsigned minimum_length) {
+  for (unsigned i = 0; i < count; ++i) {
+    if (i) out << ',';
+    const char *start = data;
+    // Range endpoints and equivalence keys retain a leading literal NUL in
+    // addition to their terminating NUL; single strings use ordinary strlen.
+    data += minimum_length;
+    while (*data) ++data;
+    out << '"' << hex(std::string_view(start, static_cast<std::size_t>(data - start))) << '"';
+    ++data;
+  }
+}
+
+void program_long_set(std::ostream &out, const detail::re_syntax_base *state) {
+  using set_type = detail::re_set_long<reference_traits::char_class_type>;
+  const auto *set = static_cast<const set_type *>(state);
+  out << R"(,"classes":)" << set->cclasses
+      << R"(,"negated_classes":)" << set->cnclasses
+      << R"(,"negated":)" << (set->isnot ? "true" : "false")
+      << R"(,"singleton":)" << (set->singleton ? "true" : "false")
+      << R"(,"singles_hex":[)";
+  const char *data = reinterpret_cast<const char *>(set + 1);
+  program_strings(out, data, set->csingles, 0);
+  out << R"(],"range_endpoints_hex":[)";
+  program_strings(out, data, 2 * set->cranges, 1);
+  out << R"(],"equivalence_keys_hex":[)";
+  program_strings(out, data, set->cequivalents, 1);
+  out << ']';
+}
+
+void program_repeat(std::ostream &out, const detail::re_syntax_base *state) {
+  const auto *repeat = static_cast<const detail::re_repeat *>(state);
+  out << R"(,"min":)" << repeat->min << R"(,"max":)" << repeat->max
+      << R"(,"state_id":)" << repeat->state_id
+      << R"(,"leading":)" << (repeat->leading ? "true" : "false")
+      << R"(,"greedy":)" << (repeat->greedy ? "true" : "false");
+}
+
+void program_state_data(std::ostream &out, const detail::re_syntax_base *state) {
+  switch (state->type) {
+  case detail::syntax_element_startmark:
+  case detail::syntax_element_endmark:
+  case detail::syntax_element_backref: {
+    const auto *brace = static_cast<const detail::re_brace *>(state);
+    out << R"(,"index":)" << brace->index
+        << R"(,"icase":)" << (brace->icase ? "true" : "false");
+    break;
+  }
+  case detail::syntax_element_backstep:
+  case detail::syntax_element_assert_backref:
+    out << R"(,"index":)" << static_cast<const detail::re_brace *>(state)->index;
+    break;
+  case detail::syntax_element_literal: {
+    const auto *literal = static_cast<const detail::re_literal *>(state);
+    out << R"(,"literal_hex":")"
+        << hex(std::string_view(reinterpret_cast<const char *>(literal + 1), literal->length))
+        << '"';
+    break;
+  }
+  case detail::syntax_element_wild:
+    out << R"(,"mask":)" << static_cast<unsigned>(static_cast<const detail::re_dot *>(state)->mask);
+    break;
+  case detail::syntax_element_toggle_case:
+    out << R"(,"icase":)" << (static_cast<const detail::re_case *>(state)->icase ? "true" : "false");
+    break;
+  case detail::syntax_element_set:
+    out << R"(,"map_hex":")";
+    program_byte_map(out, static_cast<const detail::re_set *>(state)->_map);
+    out << '"';
+    break;
+  case detail::syntax_element_long_set:
+    program_long_set(out, state);
+    break;
+  case detail::syntax_element_rep:
+  case detail::syntax_element_dot_rep:
+  case detail::syntax_element_char_rep:
+  case detail::syntax_element_short_set_rep:
+  case detail::syntax_element_long_set_rep:
+    program_repeat(out, state);
+    [[fallthrough]];
+  case detail::syntax_element_alt: {
+    const auto *alt = static_cast<const detail::re_alt *>(state);
+    out << R"(,"can_be_null":)" << alt->can_be_null << R"(,"map_hex":")";
+    program_byte_map(out, alt->_map);
+    out << '"';
+    break;
+  }
+  case detail::syntax_element_recurse:
+    out << R"(,"state_id":)" << static_cast<const detail::re_recurse *>(state)->state_id;
+    break;
+  case detail::syntax_element_commit:
+    out << R"(,"action":)" << static_cast<const detail::re_commit *>(state)->action;
+    break;
+  default:
+    break;
+  }
+}
+
+void program_state(std::ostream &out, const detail::re_syntax_base *state,
+                   std::uintptr_t origin) {
+  out << R"({"id":)";
+  program_address(out, state, origin);
+  out << R"(,"kind":)" << state->type << R"(,"next":)";
+  program_address(out, state->next.p, origin);
+  if (has_alternative(state->type)) {
+    out << R"(,"alt":)";
+    program_address(out, static_cast<const detail::re_jump *>(state)->alt.p, origin);
+  }
+  program_state_data(out, state);
+  out << '}';
+}
+
 void program(const std::string &encoded_pattern) {
-  namespace detail = boost::BOOST_REGEX_DETAIL_NS;
   try {
     const std::string pattern = unhex(encoded_pattern);
     reference_regex expression;
     expression.assign(pattern.data(), pattern.data() + pattern.size());
     const auto *first = expression.get_first_state();
     const auto origin = reinterpret_cast<std::uintptr_t>(first);
-    std::map<std::uintptr_t, const detail::re_syntax_base *> states;
-    std::vector<const detail::re_syntax_base *> pending{first};
-    const auto has_alt = [](detail::syntax_element_type type) {
-      return type == detail::syntax_element_jump || type == detail::syntax_element_alt ||
-             type == detail::syntax_element_rep || type == detail::syntax_element_dot_rep ||
-             type == detail::syntax_element_char_rep || type == detail::syntax_element_short_set_rep ||
-             type == detail::syntax_element_long_set_rep || type == detail::syntax_element_recurse;
-    };
-    while (!pending.empty()) {
-      const auto *state = pending.back();
-      pending.pop_back();
-      if (!state || !states.emplace(reinterpret_cast<std::uintptr_t>(state), state).second)
-        continue;
-      pending.push_back(state->next.p);
-      if (has_alt(state->type))
-        pending.push_back(static_cast<const detail::re_jump *>(state)->alt.p);
-    }
-    const auto address = [origin](const detail::re_syntax_base *state) {
-      if (state) std::cout << reinterpret_cast<std::uintptr_t>(state) - origin;
-      else std::cout << "null";
-    };
-    const auto byte_map = [](const unsigned char *map) {
-      std::cout << hex(std::string(reinterpret_cast<const char *>(map), 256));
-    };
-    std::cout << "{\"ok\":true,\"pattern_len\":" << expression.size()
-              << ",\"mark_count\":" << expression.mark_count()
-              << ",\"restart\":" << expression.get_restart_type()
-              << ",\"can_be_null\":" << (expression.can_be_null() ? "true" : "false")
-              << ",\"start_map_hex\":\"";
-    byte_map(expression.get_map());
-    std::cout << "\",\"states\":[";
+    const auto states = collect_program_states(first);
+    std::cout << R"({"ok":true,"pattern_len":)" << expression.size()
+              << R"(,"mark_count":)" << expression.mark_count()
+              << R"(,"restart":)" << expression.get_restart_type()
+              << R"(,"can_be_null":)" << (expression.can_be_null() ? "true" : "false")
+              << R"(,"start_map_hex":")";
+    program_byte_map(std::cout, expression.get_map());
+    std::cout << R"(","states":[)";
     bool comma = false;
     for (const auto &entry : states) {
-      const auto *state = entry.second;
       if (comma) std::cout << ',';
       comma = true;
-      std::cout << "{\"id\":";
-      address(state);
-      std::cout << ",\"kind\":" << state->type << ",\"next\":";
-      address(state->next.p);
-      if (has_alt(state->type)) {
-        std::cout << ",\"alt\":";
-        address(static_cast<const detail::re_jump *>(state)->alt.p);
-      }
-      switch (state->type) {
-      case detail::syntax_element_startmark:
-      case detail::syntax_element_endmark:
-      case detail::syntax_element_backref: {
-        const auto *brace = static_cast<const detail::re_brace *>(state);
-        std::cout << ",\"index\":" << brace->index
-                  << ",\"icase\":" << (brace->icase ? "true" : "false");
-        break;
-      }
-      case detail::syntax_element_backstep:
-      case detail::syntax_element_assert_backref:
-        std::cout << ",\"index\":" << static_cast<const detail::re_brace *>(state)->index;
-        break;
-      case detail::syntax_element_literal: {
-        const auto *literal = static_cast<const detail::re_literal *>(state);
-        std::cout << ",\"literal_hex\":\""
-                  << hex(std::string(reinterpret_cast<const char *>(literal + 1), literal->length))
-                  << '"';
-        break;
-      }
-      case detail::syntax_element_wild:
-        std::cout << ",\"mask\":" << static_cast<unsigned>(static_cast<const detail::re_dot *>(state)->mask);
-        break;
-      case detail::syntax_element_toggle_case:
-        std::cout << ",\"icase\":" << (static_cast<const detail::re_case *>(state)->icase ? "true" : "false");
-        break;
-      case detail::syntax_element_set:
-        std::cout << ",\"map_hex\":\"";
-        byte_map(static_cast<const detail::re_set *>(state)->_map);
-        std::cout << '"';
-        break;
-      case detail::syntax_element_long_set: {
-        using set_type = detail::re_set_long<reference_traits::char_class_type>;
-        const auto *set = static_cast<const set_type *>(state);
-        std::cout << ",\"classes\":" << set->cclasses
-                  << ",\"negated_classes\":" << set->cnclasses
-                  << ",\"negated\":" << (set->isnot ? "true" : "false")
-                  << ",\"singleton\":" << (set->singleton ? "true" : "false")
-                  << ",\"singles_hex\":[";
-        const char *p = reinterpret_cast<const char *>(set + 1);
-        for (unsigned i = 0; i < set->csingles; ++i) {
-          if (i) std::cout << ',';
-          const char *start = p;
-          while (*p) ++p;
-          std::cout << '"' << hex(std::string(start, p)) << '"';
-          ++p;
-        }
-        std::cout << "],\"range_endpoints_hex\":[";
-        for (unsigned i = 0; i < 2 * set->cranges; ++i) {
-          if (i) std::cout << ',';
-          const char *start = p;
-          do { ++p; } while (*p);
-          std::cout << '"' << hex(std::string(start, p)) << '"';
-          ++p;
-        }
-        std::cout << "],\"equivalence_keys_hex\":[";
-        for (unsigned i = 0; i < set->cequivalents; ++i) {
-          if (i) std::cout << ',';
-          const char *start = p;
-          do { ++p; } while (*p);
-          std::cout << '"' << hex(std::string(start, p)) << '"';
-          ++p;
-        }
-        std::cout << ']';
-        break;
-      }
-      case detail::syntax_element_rep:
-      case detail::syntax_element_dot_rep:
-      case detail::syntax_element_char_rep:
-      case detail::syntax_element_short_set_rep:
-      case detail::syntax_element_long_set_rep: {
-        const auto *repeat = static_cast<const detail::re_repeat *>(state);
-        std::cout << ",\"min\":" << repeat->min << ",\"max\":" << repeat->max
-                  << ",\"state_id\":" << repeat->state_id
-                  << ",\"leading\":" << (repeat->leading ? "true" : "false")
-                  << ",\"greedy\":" << (repeat->greedy ? "true" : "false");
-        [[fallthrough]];
-      }
-      case detail::syntax_element_alt: {
-        const auto *alt = static_cast<const detail::re_alt *>(state);
-        std::cout << ",\"can_be_null\":" << alt->can_be_null << ",\"map_hex\":\"";
-        byte_map(alt->_map);
-        std::cout << '"';
-        break;
-      }
-      case detail::syntax_element_recurse:
-        std::cout << ",\"state_id\":" << static_cast<const detail::re_recurse *>(state)->state_id;
-        break;
-      case detail::syntax_element_commit:
-        std::cout << ",\"action\":" << static_cast<const detail::re_commit *>(state)->action;
-        break;
-      default:
-        break;
-      }
-      std::cout << '}';
+      program_state(std::cout, entry.second, origin);
     }
     std::cout << "]}\n";
   } catch (const boost::regex_error &ex) {
     error(std::cout, "compile", raw_message(ex), &ex);
     std::cout << '\n';
   } catch (const std::exception &ex) {
+    // The protocol boundary must contain allocation and standard-library failures.
     error(std::cout, "protocol", ex.what());
     std::cout << '\n';
   }
@@ -392,18 +420,56 @@ std::uint64_t peak_rss_bytes() {
 #ifdef _WIN32
   PROCESS_MEMORY_COUNTERS counters{};
   if (!K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, static_cast<DWORD>(sizeof(counters))))
-    throw std::runtime_error("Unable to read process peak working set");
+    throw driver_io_error("Unable to read process peak working set");
   return static_cast<std::uint64_t>(counters.PeakWorkingSetSize);
 #else
   rusage usage{};
   if (getrusage(RUSAGE_SELF, &usage) != 0)
-    throw std::runtime_error("Unable to read process peak resident set");
+    throw driver_io_error("Unable to read process peak resident set");
 #ifdef __APPLE__
   return static_cast<std::uint64_t>(usage.ru_maxrss);
 #else
   return static_cast<std::uint64_t>(usage.ru_maxrss) * 1024;
 #endif
 #endif
+}
+
+void mix_checksum(std::uint64_t &checksum, std::uint64_t value) {
+  // This shared noncryptographic checksum only consumes benchmark results.
+  checksum = (checksum * UINT64_C(1099511628211)) ^ value;
+}
+
+void consume_match(std::uint64_t &checksum, bool matched,
+                   const boost::cmatch &found, const char *first) {
+  mix_checksum(checksum, matched ? 1 : 0);
+  if (!matched) return;
+  mix_checksum(checksum, found.size());
+  for (std::size_t i = 0; i < found.size(); ++i) {
+    mix_checksum(checksum, found[i].matched ? 1 : 0);
+    if (found[i].matched) {
+      mix_checksum(checksum, static_cast<std::uint64_t>(found[i].first - first));
+      mix_checksum(checksum, static_cast<std::uint64_t>(found[i].second - first));
+    }
+  }
+}
+
+void benchmark_execution(std::string_view operation, const reference_regex &expression,
+                         const std::string &input, const std::string &replacement,
+                         std::uint64_t &checksum) {
+  const char *first = input.data();
+  const char *last = first + input.size();
+  if (operation == "replace") {
+    std::string output;
+    boost::regex_replace(std::back_inserter(output), first, last, expression, replacement);
+    mix_checksum(checksum, output.size());
+    for (unsigned char byte : output) mix_checksum(checksum, byte);
+    return;
+  }
+  boost::cmatch found;
+  const bool matched = operation == "full"
+      ? boost::regex_match(first, last, found, expression)
+      : boost::regex_search(first, last, found, expression);
+  consume_match(checksum, matched, found, first);
 }
 
 void benchmark(bool measured, const std::string &operation,
@@ -428,52 +494,26 @@ void benchmark(bool measured, const std::string &operation,
     if (operation != "compile")
       expression.assign(pattern.data(), pattern.data() + pattern.size());
     std::uint64_t checksum = UINT64_C(14695981039346656037);
-    const auto mix = [&checksum](std::uint64_t value) {
-      checksum = (checksum * UINT64_C(1099511628211)) ^ value;
-    };
     const auto started = measured ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
     for (std::uint64_t iteration = 0; iteration < iterations; ++iteration) {
       if (operation == "compile") {
         reference_regex compiled;
         compiled.assign(pattern.data(), pattern.data() + pattern.size());
-        mix(compiled.mark_count());
-        mix(compiled.size());
+        mix_checksum(checksum, compiled.mark_count());
+        mix_checksum(checksum, compiled.size());
       } else {
         phase = "execute";
-        const char *first = input.data();
-        const char *last = first + input.size();
-        if (operation == "replace") {
-          std::string output;
-          boost::regex_replace(std::back_inserter(output), first, last, expression, replacement);
-          mix(output.size());
-          for (unsigned char byte : output) mix(byte);
-        } else {
-          boost::cmatch found;
-          const bool matched = operation == "full"
-              ? boost::regex_match(first, last, found, expression)
-              : boost::regex_search(first, last, found, expression);
-          mix(matched ? 1 : 0);
-          if (matched) {
-            mix(found.size());
-            for (std::size_t i = 0; i < found.size(); ++i) {
-              mix(found[i].matched ? 1 : 0);
-              if (found[i].matched) {
-                mix(static_cast<std::uint64_t>(found[i].first - first));
-                mix(static_cast<std::uint64_t>(found[i].second - first));
-              }
-            }
-          }
-        }
+        benchmark_execution(operation, expression, input, replacement, checksum);
       }
     }
     const auto finished = measured ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
     std::ostringstream output;
-    output << "{\"ok\":true,\"operation\":\"" << operation << "\",\"iterations\":"
-           << iterations << ",\"checksum\":" << checksum
-           << ",\"measured\":" << (measured ? "true" : "false");
+    output << R"({"ok":true,"operation":")" << operation << R"(","iterations":)"
+           << iterations << R"(,"checksum":)" << checksum
+           << R"(,"measured":)" << (measured ? "true" : "false");
     if (measured) {
       const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(finished - started).count();
-      output << ",\"elapsed_ns\":" << elapsed << ",\"peak_rss_bytes\":" << peak_rss_bytes();
+      output << R"(,"elapsed_ns":)" << elapsed << R"(,"peak_rss_bytes":)" << peak_rss_bytes();
     }
     output << "}\n";
     std::cout << output.str();
@@ -485,6 +525,33 @@ void benchmark(bool measured, const std::string &operation,
     std::cout << '\n';
   }
 }
+
+#ifdef BOOST_REGEX_REFERENCE_ACCOUNTING_OBSERVER
+using observed_matcher = detail::perl_matcher<
+    const char *, boost::cmatch::allocator_type, reference_traits>;
+
+bool accounting_match(std::ostream &out, observed_matcher &matcher,
+                      const boost::cmatch &found, const char *first,
+                      std::string_view operation) {
+  bool counters_initialized = false;
+  try {
+    const bool matched = operation == "full" ? matcher.match() : matcher.find();
+    counters_initialized = true;
+    out << R"({"ok":true,"match":)";
+    if (matched) match(out, found, first);
+    else out << "null";
+    out << '}';
+  } catch (const boost::regex_error &ex) {
+    // All retained computation-limit failures happen after counters initialize.
+    counters_initialized = true;
+    error(out, "execute", raw_message(ex), &ex);
+  } catch (const std::exception &ex) {
+    // Other failures may occur before the observer counters are initialized.
+    error(out, "execute", ex.what());
+  }
+  return counters_initialized;
+}
+#endif
 
 void accounting(std::ostream &out, const std::string &operation,
                 const std::string &pattern_hex, const std::string &input_hex) {
@@ -500,32 +567,16 @@ void accounting(std::ostream &out, const std::string &operation,
     expression.assign(pattern.data(), pattern.data() + pattern.size());
     boost::cmatch found;
     const char *first = input.data();
-    using matcher_type = boost::BOOST_REGEX_DETAIL_NS::perl_matcher<
-        const char *, boost::cmatch::allocator_type, reference_traits>;
-    matcher_type matcher(first, first + input.size(), found, expression,
-                         boost::match_default, first);
+    observed_matcher matcher(first, first + input.size(), found, expression,
+                             boost::match_default, first);
     std::ostringstream result;
-    bool counters_initialized = false;
-    try {
-      const bool matched = operation == "full" ? matcher.match() : matcher.find();
-      counters_initialized = true;
-      result << "{\"ok\":true,\"match\":";
-      if (matched) match(result, found, first);
-      else result << "null";
-      result << '}';
-    } catch (const boost::regex_error &ex) {
-      // All retained computation-limit failures happen after counters initialize.
-      counters_initialized = true;
-      error(result, "execute", raw_message(ex), &ex);
-    } catch (const std::exception &ex) {
-      error(result, "execute", ex.what());
-    }
+    const bool counters_initialized = accounting_match(result, matcher, found, first, operation);
     const auto json = result.str();
-    out << json.substr(0, json.size() - 1) << ",\"accounting\":";
+    out << json.substr(0, json.size() - 1) << R"(,"accounting":)";
     if (counters_initialized) {
-      out << "{\"state_count\":" << matcher.reference_state_count()
-          << ",\"max_state_count\":" << matcher.reference_max_state_count()
-          << ",\"blocks_remaining_after_cleanup\":" << matcher.reference_used_block_count() << '}';
+      out << R"({"state_count":)" << matcher.reference_state_count()
+          << R"(,"max_state_count":)" << matcher.reference_max_state_count()
+          << R"(,"blocks_remaining_after_cleanup":)" << matcher.reference_used_block_count() << '}';
     } else out << "null";
     out << '}';
 #else
@@ -582,7 +633,7 @@ int main(int argc, char **argv) {
       catch (const std::exception &ex) { error(std::cout, "protocol", ex.what()); }
       std::cout << '\n' << std::flush;
     }
-    if (std::cin.bad()) throw std::runtime_error("Failed to read request stream");
+    if (std::cin.bad()) throw driver_io_error("Failed to read request stream");
   } catch (const std::exception &ex) {
     std::cerr << ex.what() << '\n';
     return 1;

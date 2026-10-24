@@ -12,6 +12,12 @@ The `--check` mode executes identical byte workloads and compares checksums whil
 collecting no timing or memory measurements. These modes can validate the tooling
 before the user designates a measurement machine.
 
+The harness uses the [comparison-tool path boundaries](reference.md#comparison-tool-paths):
+executables are named build artifacts under `target/`, JSON reports are under
+`reports/`, and custom workload/build metadata files are inside the checkout.
+Dry runs can name artifacts that have not been built yet, while still enforcing
+these boundaries. Invalid paths fail before any engine starts.
+
 ## Build and check the plumbing
 
 Build the uninstrumented C++ reference and the Rust executable in release mode:

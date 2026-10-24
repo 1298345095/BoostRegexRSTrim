@@ -15,12 +15,16 @@ import shutil
 import subprocess
 import tempfile
 
+from tool_paths import driver_path, report_path
+
+
+COMPLEXITY_PATTERN = b"(a+)+$"
 
 def accounting_cases():
     groups = {
         "literal": [b"", b"a", b"ab", b"a\x00\xff"],
         "alternatives-captures": [b"a|b", b"ab|a", b"(a)", b"(?:a)", b"(a?)", b"(?|(a)|(b))"],
-        "repetition": [b"a*", b"a+", b"a*?", b"a+?", b"a{1,3}", b".*", b"(?-s).*", b"[ab]*", b"[[.ae.]]*", b"(a)*", b"(a)+", b"(a?)+", b"(a|b)+", b"(a(b)?)+", b"(a+)+$"],
+        "repetition": [b"a*", b"a+", b"a*?", b"a+?", b"a{1,3}", b".*", b"(?-s).*", b"[ab]*", b"[[.ae.]]*", b"(a)*", b"(a)+", b"(a?)+", b"(a|b)+", b"(a(b)?)+", COMPLEXITY_PATTERN],
         "anchors": [b"^a", b"\\Aa", b"\\ba", b"\\<a", b"a$", b"a\\Z", b"\\G."],
         "case-options": [b"(?i)a", b"a(?i)b", b"(?i:a)b"],
         "assertions-atomic": [b"(?=a)a", b"(?!(a))b|a", b"(?<=a)b", b"(?>a)", b"a*+"],
@@ -73,9 +77,9 @@ def boundary_cases(reference):
     for depth in (79, 80, 81, 100):
         yield "explicit-recursion-depth", "full", b"(?<x>a(?&x)?b)", b"a" * depth + b"b" * depth, True
 
-    complexity = first_limit_failure(reference, b"(a+)+$", lambda n: b"a" * n + b"b", 1, 30, 18)
+    complexity = first_limit_failure(reference, COMPLEXITY_PATTERN, lambda n: b"a" * n + b"b", 1, 30, 18)
     for length in (complexity - 1, complexity, complexity + 1):
-        yield "complexity-transition", "full", b"(a+)+$", b"a" * length + b"b", True
+        yield "complexity-transition", "full", COMPLEXITY_PATTERN, b"a" * length + b"b", True
 
     storage = first_limit_failure(reference, b"(a)*", lambda n: b"a" * n, 1, 50_000, 19)
     # All requests travel over stdin, avoiding the Windows command-line limit.
@@ -106,6 +110,12 @@ def main():
     parser.add_argument("--report", type=Path, default=Path("reports/accounting.json"))
     parser.add_argument("--boundaries-only", action="store_true")
     args = parser.parse_args()
+    try:
+        args.reference = driver_path(args.reference)
+        args.rust = driver_path(args.rust)
+        args.report = report_path(args.report)
+    except ValueError as error:
+        parser.error(str(error))
     args.report.parent.mkdir(parents=True, exist_ok=True)
     mismatches = []
     boundaries = []
@@ -148,7 +158,7 @@ def main():
               "mismatch_count": len(mismatches), "mismatches": mismatches,
               "boundaries": boundaries, "executables_sha256": versions,
               "reference_environment": environment, "performance_measured": False}
-    args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    report_path(args.report).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"{total} accounting/boundary comparisons; {len(mismatches)} mismatches; {args.report}")
     for row in mismatches[:12]:
         print(json.dumps(row))

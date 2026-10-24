@@ -13,6 +13,8 @@ import random
 import subprocess
 import sys
 
+from tool_paths import driver_path, report_path
+
 
 CLASSES = (
     b"alnum", b"alpha", b"blank", b"cntrl", b"d", b"digit", b"graph",
@@ -69,6 +71,7 @@ def cases(random_templates):
              b"$`", b"$'", b"$&", b"$$", b"\\u", b"\\L", b"\\E", b"\\U",
              b"\\l", b"\\x", b"\\x{", b"\\x{-1}", b"\\x41", b"\\01234",
              b"1}", b"-1}", b"ff}", b"0x42}", b"9999999999999999999999999}"]
+    # Deterministic test data, never secrets or security-sensitive identifiers.
     rng = random.Random(SEED)
     templates += [b"".join(rng.choices(parts, k=rng.randrange(1, 8)))
                   for _ in range(random_templates)]
@@ -85,6 +88,7 @@ def cases(random_templates):
 
 
 def run(executable, arguments, requests):
+    executable = driver_path(executable)
     wire = "".join("\t".join((case["operation"], case["pattern_hex"],
                              case["input_hex"], case["template_hex"])) + "\n"
                    for case in requests)
@@ -124,8 +128,14 @@ def main():
     parser.add_argument("--default-only", action="store_true")
     parser.add_argument("--random-templates", type=int, default=2000)
     args = parser.parse_args()
-    reference = args.reference.resolve()
-    rust = args.rust.resolve()
+    try:
+        reference = driver_path(args.reference)
+        rust = driver_path(args.rust)
+        args.output = report_path(args.output)
+    except ValueError as error:
+        parser.error(str(error))
+    if args.random_templates < 0:
+        parser.error("random-templates must be nonnegative")
     scenarios = [("default", [])]
     if not args.default_only:
         locales = args.locale or ([] if os.name == "nt" else
@@ -156,6 +166,7 @@ def main():
         report["scenarios"].append(scenario)
         print(f"{label}: {scenario['status']} ({len(scenario['mismatches'])} differences)", flush=True)
     report["status"] = "passed" if all(s["status"] == "passed" for s in report["scenarios"]) else "failed"
+    args.output = report_path(args.output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return 0 if report["status"] == "passed" else 1
