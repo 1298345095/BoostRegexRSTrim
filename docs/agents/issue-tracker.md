@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues and specs for this repo live as GitHub issues. Follow the GitHub tool-selection rule in `AGENTS.md`; the commands below are CLI equivalents of the required operations.
 
 ## Conventions
 
@@ -31,7 +31,7 @@ Create a GitHub issue.
 
 ## When a skill says "fetch the relevant ticket"
 
-Run `gh issue view <number> --comments`.
+Read the issue body and comments with the selected tool (`gh issue view <number> --comments` when using the CLI).
 
 ## Wayfinding operations
 

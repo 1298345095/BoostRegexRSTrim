@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues and specs for this repo live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues and specs for this repo live in GitHub Issues. For GitHub operations, prefer an available GitHub plugin when it is better suited to the task; otherwise use the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
