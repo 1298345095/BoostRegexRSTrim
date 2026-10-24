@@ -375,6 +375,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", benchmark(arg == "--benchmark", &fields, &rules)?);
                 return Ok(());
             }
+            "--benchmark-stdin" | "--benchmark-check-stdin" => {
+                let mut line = String::new();
+                if io::stdin().lock().read_line(&mut line)? == 0 {
+                    return Err("Expected a benchmark workload on standard input".into());
+                }
+                let fields = line
+                    .trim_end_matches(|ch| ch == '\r' || ch == '\n')
+                    .split('\t')
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>();
+                println!("{}", benchmark(arg == "--benchmark-stdin", &fields, &rules)?);
+                return Ok(());
+            }
             #[cfg(feature = "diagnostics")]
             "--accounting" => {
                 let fields = args.collect::<Vec<_>>();

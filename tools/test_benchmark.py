@@ -122,9 +122,10 @@ class BenchmarkTests(unittest.TestCase):
         def respond(argv, **_kwargs):
             if argv[0] in ("rustc", "cargo"):
                 return subprocess.CompletedProcess(argv, 0, "test toolchain", "")
-            requests.append(argv)
+            wire = _kwargs["input"].rstrip("\n").split("\t")
+            requests.append((argv, wire))
             return subprocess.CompletedProcess(argv, 0, json.dumps({
-                "ok": True, "operation": argv[2], "iterations": int(argv[-1]),
+                "ok": True, "operation": wire[0], "iterations": int(wire[-1]),
                 "checksum": 1234, "measured": False,
             }), "")
 
@@ -133,8 +134,9 @@ class BenchmarkTests(unittest.TestCase):
             self.assertEqual(self.run_main("--check"), 0)
         report = json.loads(self.report.read_text(encoding="utf-8"))
         self.assertEqual(len(requests), 18)
-        self.assertTrue(all(argv[1] == "--benchmark-check" for argv in requests))
-        self.assertTrue(all(argv[-1] == "2" for argv in requests))
+        self.assertTrue(all(len(argv) == 2 and argv[1] == "--benchmark-check-stdin"
+                            for argv, _wire in requests))
+        self.assertTrue(all(wire[-1] == "2" for _argv, wire in requests))
         self.assertEqual(report["status"], "passed")
         self.assertEqual(len(report["checks"]), 9)
         self.assertEqual(report["samples"], [])
@@ -185,7 +187,8 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(list(self.report.parent.iterdir()), [self.report])
         self.assertEqual(run.call_count, 2)
         for call in run.call_args_list:
-            self.assertEqual(call.args[0][1:], ["--benchmark-check", "search", "61", "6261", "", "2"])
+            self.assertEqual(call.args[0][1:], ["--benchmark-check-stdin"])
+            self.assertEqual(call.kwargs["input"], "search\t61\t6261\t\t2\n")
             self.assertIs(call.kwargs["shell"], False)
         self.assertEqual(report["samples"], [])
 

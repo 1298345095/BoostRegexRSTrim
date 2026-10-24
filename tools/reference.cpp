@@ -90,7 +90,7 @@ std::string unhex(std::string_view value) {
   return result;
 }
 
-std::vector<std::string> fields(std::string_view line) {
+std::vector<std::string> split_fields(std::string_view line, std::size_t expected) {
   std::vector<std::string> result;
   std::size_t start = 0;
   for (;;) {
@@ -99,8 +99,14 @@ std::vector<std::string> fields(std::string_view line) {
     if (end == std::string::npos) break;
     start = end + 1;
   }
-  if (result.size() != 4) throw std::invalid_argument("Expected four tab-separated fields");
+  if (result.size() != expected)
+    throw std::invalid_argument(expected == 4 ? "Expected four tab-separated fields"
+                                               : "Expected five tab-separated benchmark fields");
   return result;
+}
+
+std::vector<std::string> fields(std::string_view line) {
+  return split_fields(line, 4);
 }
 
 void error(std::ostream &out, const char *phase, std::string_view message,
@@ -633,6 +639,15 @@ void accounting(std::ostream &out, const std::string &operation,
     error(out, phase, ex.what());
   }
 }
+void benchmark_from_stdin(bool measured) {
+  std::string line;
+  if (!std::getline(std::cin, line))
+    throw driver_io_error("Expected a benchmark workload on standard input");
+  if (!line.empty() && line.back() == '\r') line.pop_back();
+  const auto values = split_fields(line, 5);
+  benchmark(measured, values[0], values[1], values[2], values[3], values[4]);
+}
+
 void process_request_line(std::string_view line) {
   try {
     execute(std::cout, fields(line));
@@ -644,6 +659,15 @@ void process_request_line(std::string_view line) {
     error(std::cout, "protocol", ex.what());
   }
   std::cout << '\n' << std::flush;
+}
+
+void run_requests() {
+  std::string line;
+  while (std::getline(std::cin, line)) {
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    process_request_line(line);
+  }
+  if (std::cin.bad()) throw driver_io_error("Failed to read request stream");
 }
 
 } // namespace
@@ -673,6 +697,9 @@ int main(int argc, char **argv) {
       } else if ((arg == "--benchmark" || arg == "--benchmark-check") && i + 5 < argc) {
         benchmark(arg == "--benchmark", argv[i + 1], argv[i + 2], argv[i + 3], argv[i + 4], argv[i + 5]);
         return 0;
+      } else if (arg == "--benchmark-stdin" || arg == "--benchmark-check-stdin") {
+        benchmark_from_stdin(arg == "--benchmark-stdin");
+        return 0;
       } else if (arg == "--accounting" && i + 3 < argc) {
         accounting(std::cout, argv[i + 1], argv[i + 2], argv[i + 3]);
         std::cout << '\n';
@@ -681,12 +708,7 @@ int main(int argc, char **argv) {
         throw std::invalid_argument("Usage: reference [--locale NAME | --lcid NUMBER] [--environment]");
       }
     }
-    std::string line;
-    while (std::getline(std::cin, line)) {
-      if (!line.empty() && line.back() == '\r') line.pop_back();
-      process_request_line(line);
-    }
-    if (std::cin.bad()) throw driver_io_error("Failed to read request stream");
+    run_requests();
   } catch (const std::exception &ex) {
     std::cerr << ex.what() << '\n';
     return 1;

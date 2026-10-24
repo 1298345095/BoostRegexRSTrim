@@ -163,6 +163,16 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(result[2], option("--accounting", "search", b"ab".hex(),
                                           b"xab".hex()))
 
+    def test_benchmark_stdin_protocol_is_equivalent_to_positional_arguments(self):
+        operation, pattern, input_hex, template, iterations = "replace", "286129", "6161", "2431", "2"
+        command = [str(BASELINE or EXE), *OPTIONS, "--benchmark-check-stdin"]
+        workload = "\t".join((operation, pattern, input_hex, template, iterations)) + "\n"
+        completed = subprocess.run(command, input=workload, text=True, capture_output=True,
+                                   timeout=30, check=True)
+        expected = option("--benchmark-check", operation, pattern, input_hex, template, iterations,
+                          executable=BASELINE or EXE)
+        self.assertEqual(json.loads(completed.stdout), expected)
+
     def test_benchmark_checksums_without_measurements(self):
         expected = {"compile": 4933856667531161709, "search": 14147806866978356193,
                     "full": 590684067820433389, "replace": 1156954223697340209}

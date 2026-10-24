@@ -74,15 +74,20 @@ def command(executable, item, iterations, measured, *, must_exist=False):
     if type(measured) is not bool:
         raise ValueError("Benchmark measurement mode must be a boolean")
     executable = driver_path(executable, must_exist=must_exist)
-    return [str(executable), "--benchmark" if measured else "--benchmark-check",
-            item["operation"], item["pattern_hex"], item["input_hex"],
-            item["template_hex"], str(iterations)]
+    # The executable and the mode are the only process arguments; workload
+    # bytes and iteration counts travel as data on stdin, not as argv.
+    return [str(executable), "--benchmark-stdin" if measured else "--benchmark-check-stdin"]
+
+
+def workload_input(item, iterations):
+    return "\t".join((item["operation"], item["pattern_hex"], item["input_hex"],
+                      item["template_hex"], str(iterations))) + "\n"
 
 
 def invoke(executable, item, iterations, measured, timeout):
     argv = command(executable, item, iterations, measured, must_exist=True)
-    result = subprocess.run(argv, cwd=ROOT, shell=False, text=True, capture_output=True,
-                            check=True, timeout=timeout)
+    result = subprocess.run(argv, cwd=ROOT, shell=False, input=workload_input(item, iterations),
+                            text=True, capture_output=True, check=True, timeout=timeout)
     value = json.loads(result.stdout)
     if not value.get("ok"):
         raise ValueError("Driver rejected workload: " + json.dumps(value, ensure_ascii=True))
@@ -184,7 +189,8 @@ def prepare_report(args, metadata, workloads):
         ],
         "planned_measurement_commands": [
             {"workload": item["name"], "reference": command(reference, item, args.iterations, True),
-             "rust": command(rust, item, args.iterations, True)} for item in workloads
+             "rust": command(rust, item, args.iterations, True),
+             "stdin": workload_input(item, args.iterations)} for item in workloads
         ],
         "checks": [], "samples": [], "summary": [],
         "method": {
