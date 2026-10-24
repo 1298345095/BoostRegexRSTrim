@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <exception>
+#include <new>
 #include <iostream>
 #include <iterator>
 #include <locale>
@@ -23,7 +24,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
+#include <Windows.h>
 #include <Psapi.h>
 #else
 #include <sys/resource.h>
@@ -40,13 +41,16 @@ public:
 };
 
 #ifdef BOOST_REGEX_USE_WIN32_LOCALE
-unsigned long selected_lcid = 0;
+unsigned long &selected_lcid() {
+  static unsigned long value = 0;
+  return value;
+}
 #endif
 
 struct reference_traits : boost::regex_traits<char> {
   reference_traits() {
 #ifdef BOOST_REGEX_USE_WIN32_LOCALE
-    if (selected_lcid) imbue(selected_lcid);
+    if (selected_lcid()) imbue(selected_lcid());
 #endif
   }
 };
@@ -54,15 +58,20 @@ struct reference_traits : boost::regex_traits<char> {
 using reference_regex = boost::basic_regex<char, reference_traits>;
 using reference_iterator = boost::regex_iterator<const char *, char, reference_traits>;
 
-std::string hex(std::string_view bytes) {
+std::string hex_bytes(const std::byte *bytes, std::size_t length) {
   static constexpr char digits[] = "0123456789abcdef";
   std::string result;
-  result.reserve(bytes.size() * 2);
-  for (unsigned char byte : bytes) {
+  result.reserve(length * 2);
+  for (std::size_t i = 0; i < length; ++i) {
+    const unsigned byte = std::to_integer<unsigned>(bytes[i]);
     result += digits[byte >> 4];
     result += digits[byte & 15];
   }
   return result;
+}
+
+std::string hex(std::string_view bytes) {
+  return hex_bytes(reinterpret_cast<const std::byte *>(bytes.data()), bytes.size());
 }
 
 unsigned nibble(char c) {
@@ -148,7 +157,13 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
   } catch (const boost::regex_error &ex) {
     error(out, "compile", raw_message(ex), &ex);
     return;
-  } catch (const std::exception &ex) {
+  } catch (const std::logic_error &ex) {
+    error(out, "compile", ex.what());
+    return;
+  } catch (const std::runtime_error &ex) {
+    error(out, "compile", ex.what());
+    return;
+  } catch (const std::bad_alloc &ex) {
     error(out, "compile", ex.what());
     return;
   }
@@ -188,7 +203,11 @@ void execute(std::ostream &out, const std::vector<std::string> &request) {
     out << result.str();
   } catch (const boost::regex_error &ex) {
     error(out, "execute", raw_message(ex), &ex);
-  } catch (const std::exception &ex) {
+  } catch (const std::logic_error &ex) {
+    error(out, "execute", ex.what());
+  } catch (const std::runtime_error &ex) {
+    error(out, "execute", ex.what());
+  } catch (const std::bad_alloc &ex) {
     error(out, "execute", ex.what());
   }
 }
@@ -293,7 +312,7 @@ void program_long_set(std::ostream &out, const detail::re_syntax_base *state) {
       << R"(,"negated":)" << (set->isnot ? "true" : "false")
       << R"(,"singleton":)" << (set->singleton ? "true" : "false")
       << R"(,"singles_hex":[)";
-  const char *data = reinterpret_cast<const char *>(set + 1);
+  auto data = reinterpret_cast<const char *>(set + 1);
   program_strings(out, data, set->csingles, 0);
   out << R"(],"range_endpoints_hex":[)";
   program_strings(out, data, 2 * set->cranges, 1);
@@ -327,7 +346,7 @@ void program_state_data(std::ostream &out, const detail::re_syntax_base *state) 
   case detail::syntax_element_literal: {
     const auto *literal = static_cast<const detail::re_literal *>(state);
     out << R"(,"literal_hex":")"
-        << hex(std::string_view(reinterpret_cast<const char *>(literal + 1), literal->length))
+        << hex_bytes(reinterpret_cast<const std::byte *>(literal + 1), literal->length)
         << '"';
     break;
   }
@@ -400,17 +419,26 @@ void program(const std::string &encoded_pattern) {
     program_byte_map(std::cout, expression.get_map());
     std::cout << R"(","states":[)";
     bool comma = false;
-    for (const auto &entry : states) {
+    for (const auto &[address, state] : states) {
+      (void)address;
       if (comma) std::cout << ',';
       comma = true;
-      program_state(std::cout, entry.second, origin);
+      program_state(std::cout, state, origin);
     }
     std::cout << "]}\n";
   } catch (const boost::regex_error &ex) {
     error(std::cout, "compile", raw_message(ex), &ex);
     std::cout << '\n';
-  } catch (const std::exception &ex) {
-    // The protocol boundary must contain allocation and standard-library failures.
+  } catch (const std::logic_error &ex) {
+    // Preserve the protocol response for standard-library failures.
+    error(std::cout, "protocol", ex.what());
+    std::cout << '\n';
+  } catch (const std::runtime_error &ex) {
+    // Preserve the protocol response for standard-library failures.
+    error(std::cout, "protocol", ex.what());
+    std::cout << '\n';
+  } catch (const std::bad_alloc &ex) {
+    // Preserve the protocol response for standard-library failures.
     error(std::cout, "protocol", ex.what());
     std::cout << '\n';
   }
@@ -454,7 +482,7 @@ void consume_match(std::uint64_t &checksum, bool matched,
 }
 
 void benchmark_execution(std::string_view operation, const reference_regex &expression,
-                         const std::string &input, const std::string &replacement,
+                         std::string_view input, const std::string &replacement,
                          std::uint64_t &checksum) {
   const char *first = input.data();
   const char *last = first + input.size();
@@ -520,7 +548,13 @@ void benchmark(bool measured, const std::string &operation,
   } catch (const boost::regex_error &ex) {
     error(std::cout, phase, raw_message(ex), &ex);
     std::cout << '\n';
-  } catch (const std::exception &ex) {
+  } catch (const std::logic_error &ex) {
+    error(std::cout, phase, ex.what());
+    std::cout << '\n';
+  } catch (const std::runtime_error &ex) {
+    error(std::cout, phase, ex.what());
+    std::cout << '\n';
+  } catch (const std::bad_alloc &ex) {
     error(std::cout, phase, ex.what());
     std::cout << '\n';
   }
@@ -545,8 +579,12 @@ bool accounting_match(std::ostream &out, observed_matcher &matcher,
     // All retained computation-limit failures happen after counters initialize.
     counters_initialized = true;
     error(out, "execute", raw_message(ex), &ex);
-  } catch (const std::exception &ex) {
+  } catch (const std::logic_error &ex) {
     // Other failures may occur before the observer counters are initialized.
+    error(out, "execute", ex.what());
+  } catch (const std::runtime_error &ex) {
+    error(out, "execute", ex.what());
+  } catch (const std::bad_alloc &ex) {
     error(out, "execute", ex.what());
   }
   return counters_initialized;
@@ -587,10 +625,27 @@ void accounting(std::ostream &out, const std::string &operation,
 #endif
   } catch (const boost::regex_error &ex) {
     error(out, phase, raw_message(ex), &ex);
-  } catch (const std::exception &ex) {
+  } catch (const std::logic_error &ex) {
+    error(out, phase, ex.what());
+  } catch (const std::runtime_error &ex) {
+    error(out, phase, ex.what());
+  } catch (const std::bad_alloc &ex) {
     error(out, phase, ex.what());
   }
 }
+void process_request_line(std::string_view line) {
+  try {
+    execute(std::cout, fields(line));
+  } catch (const std::logic_error &ex) {
+    error(std::cout, "protocol", ex.what());
+  } catch (const std::runtime_error &ex) {
+    error(std::cout, "protocol", ex.what());
+  } catch (const std::bad_alloc &ex) {
+    error(std::cout, "protocol", ex.what());
+  }
+  std::cout << '\n' << std::flush;
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -603,8 +658,8 @@ int main(int argc, char **argv) {
 #ifdef BOOST_REGEX_USE_WIN32_LOCALE
         std::size_t consumed = 0;
         const std::string value = argv[++i];
-        selected_lcid = std::stoul(value, &consumed, 0);
-        if (consumed != value.size() || selected_lcid == 0)
+        selected_lcid() = std::stoul(value, &consumed, 0);
+        if (consumed != value.size() || selected_lcid() == 0)
           throw std::invalid_argument("Invalid locale identifier");
 #else
         throw std::invalid_argument("--lcid requires Windows byte traits");
@@ -629,9 +684,7 @@ int main(int argc, char **argv) {
     std::string line;
     while (std::getline(std::cin, line)) {
       if (!line.empty() && line.back() == '\r') line.pop_back();
-      try { execute(std::cout, fields(line)); }
-      catch (const std::exception &ex) { error(std::cout, "protocol", ex.what()); }
-      std::cout << '\n' << std::flush;
+      process_request_line(line);
     }
     if (std::cin.bad()) throw driver_io_error("Failed to read request stream");
   } catch (const std::exception &ex) {
