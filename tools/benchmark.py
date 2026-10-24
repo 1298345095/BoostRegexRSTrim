@@ -11,7 +11,7 @@ import statistics
 import subprocess
 import sys
 
-from tool_paths import driver_path, project_file, report_path
+from tool_paths import driver_path, project_file, report_path, write_json_report
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -286,9 +286,8 @@ def main():
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         report["status"] = "failed"
         report["error"] = str(error)
-    output = report_path(args.report)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    report_path(output).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    output = args.report
+    write_json_report(output, report)
     print(f"{report['mode']}: {report['status']}; report {output}")
     if report["status"] == "failed":
         print(report["error"], file=sys.stderr)

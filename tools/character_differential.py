@@ -13,7 +13,7 @@ import random
 import subprocess
 import sys
 
-from tool_paths import driver_path, report_path
+from tool_paths import driver_path, report_path, write_json_report
 
 
 CLASSES = (
@@ -166,9 +166,7 @@ def main():
         report["scenarios"].append(scenario)
         print(f"{label}: {scenario['status']} ({len(scenario['mismatches'])} differences)", flush=True)
     report["status"] = "passed" if all(s["status"] == "passed" for s in report["scenarios"]) else "failed"
-    args.output = report_path(args.output)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    write_json_report(args.output, report)
     return 0 if report["status"] == "passed" else 1
 
 

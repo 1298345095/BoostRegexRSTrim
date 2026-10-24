@@ -43,8 +43,11 @@ Generated `--report` paths must be `.json` files under `reports/`. Custom worklo
 and build-metadata input files must be inside the checkout. Absolute paths are
 accepted within these boundaries. Paths are canonicalized before use, including
 symlink resolution, and invalid selections fail before engine execution or
-report creation. This prevents a mistaken CLI argument from executing an
-unrelated system command or overwriting source files. It does not sandbox an
+report creation. Reports are written to a temporary file in the destination
+directory and atomically replaced, so serialization failures preserve the old
+report and existing hard links cannot redirect writes into a shared inode.
+This prevents a mistaken CLI argument from executing an unrelated system
+command or overwriting source files. It does not sandbox an
 untrusted build artifact or defend against another process changing files
 concurrently.
 

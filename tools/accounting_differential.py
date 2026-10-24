@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import tempfile
 
-from tool_paths import driver_path, report_path
+from tool_paths import driver_path, report_path, write_json_report
 
 
 COMPLEXITY_PATTERN = b"(a+)+$"
@@ -158,7 +158,7 @@ def main():
               "mismatch_count": len(mismatches), "mismatches": mismatches,
               "boundaries": boundaries, "executables_sha256": versions,
               "reference_environment": environment, "performance_measured": False}
-    report_path(args.report).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    write_json_report(args.report, report)
     print(f"{total} accounting/boundary comparisons; {len(mismatches)} mismatches; {args.report}")
     for row in mismatches[:12]:
         print(json.dumps(row))
