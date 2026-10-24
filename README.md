@@ -173,6 +173,11 @@ and uploads JSON evidence. [Reference documentation](docs/reference.md) describe
 the byte protocol and why the raw-error observer preserves bytes beyond NUL.
 The tracked `boost/` headers remain unchanged.
 
+The [functional acceptance record](docs/functional-acceptance.md) maps all 25
+tickets to their checks and records the successful six-target run. Its
+[native result snapshot](docs/native-functional-results.json) preserves the
+compiler conditions, hashes, comparison counts and exact budget observations.
+
 Performance tooling is provided in [`tools/benchmark.py`](tools/benchmark.py).
 Its default plan and `--check` mode collect no timing or memory measurements.
 Measurements and regression thresholds remain pending a user-designated machine,
