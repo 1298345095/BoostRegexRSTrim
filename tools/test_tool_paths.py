@@ -1,11 +1,12 @@
 """Regression checks for test-tool file and executable boundaries."""
 
 import os
+import json
 from pathlib import Path
 import tempfile
 import unittest
 
-from tool_paths import PROJECT_ROOT, driver_path, project_file, report_path
+from tool_paths import PROJECT_ROOT, driver_path, project_file, report_path, write_json_report
 
 
 class ToolPathTests(unittest.TestCase):
@@ -98,6 +99,26 @@ class ToolPathTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             report_path(link)
         self.assertEqual(destination.read_text(encoding="utf-8"), "fixture")
+
+    def test_report_publication_replaces_a_hard_link_without_mutating_its_source(self):
+        source = self.make_file(self.build / "source.json")
+        output = self.reports / "result.json"
+        try:
+            os.link(source, output)
+        except OSError as error:
+            self.skipTest(f"Creating hard links is unavailable: {error}")
+        write_json_report(output, {"status": "passed", "path": "../../source.json"})
+        self.assertEqual(source.read_text(encoding="utf-8"), "fixture")
+        self.assertEqual(json.loads(output.read_text(encoding="utf-8")),
+                         {"status": "passed", "path": "../../source.json"})
+        self.assertEqual(list(self.reports.iterdir()), [output])
+
+    def test_invalid_report_data_keeps_the_previous_report_intact(self):
+        output = self.make_file(self.reports / "result.json")
+        with self.assertRaises(TypeError):
+            write_json_report(output, {"invalid": object()})
+        self.assertEqual(output.read_text(encoding="utf-8"), "fixture")
+        self.assertEqual(list(self.reports.iterdir()), [output])
 
 
 if __name__ == "__main__":

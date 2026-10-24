@@ -10,7 +10,7 @@ import random
 import subprocess
 from pathlib import Path
 
-from tool_paths import driver_path, report_path
+from tool_paths import driver_path, report_path, write_json_report
 
 
 def corpus(seed, random_cases):
@@ -149,9 +149,7 @@ def main():
               "rust_environment": rust_environment,
               "executables_sha256": {"reference": hashlib.sha256(args.reference.read_bytes()).hexdigest(), "rust": hashlib.sha256(args.rust.read_bytes()).hexdigest()},
               "runner_image": os.environ.get("ImageVersion"), "performance_acceptance": "pending designated machine"}
-    args.report = report_path(args.report)
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    write_json_report(args.report, report)
     print(f"{len(cases)} comparisons; {len(mismatches)} mismatches; report {args.report}")
     for mismatch in mismatches[:12]:
         print(json.dumps(mismatch))

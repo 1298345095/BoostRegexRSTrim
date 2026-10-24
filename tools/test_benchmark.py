@@ -16,6 +16,17 @@ import benchmark
 
 class BenchmarkTests(unittest.TestCase):
     def setUp(self):
+        # Platform metadata can launch system probes, such as `file` on macOS.
+        # Isolate it so subprocess assertions observe only benchmark commands.
+        metadata = mock.patch.multiple(
+            benchmark.platform,
+            platform=lambda: "TestOS-1.0",
+            machine=lambda: "test-architecture",
+            libc_ver=lambda: ("test-libc", "1.0"),
+            processor=lambda: "test-processor",
+        )
+        metadata.start()
+        self.addCleanup(metadata.stop)
         (benchmark.ROOT / "target").mkdir(exist_ok=True)
         (benchmark.ROOT / "reports").mkdir(exist_ok=True)
         self.artifacts = tempfile.TemporaryDirectory(dir=benchmark.ROOT / "target")
@@ -155,6 +166,24 @@ class BenchmarkTests(unittest.TestCase):
                 check.assert_not_called()
                 load.assert_not_called()
             self.assertEqual(outside.read_text(encoding="utf-8"), "[]")
+
+    def test_workload_names_remain_data_and_never_choose_paths_or_arguments(self):
+        name = "../../other.json; --benchmark"
+        item = benchmark.workload(name, "search", b"a", b"ba")
+        workloads = self.write_workloads([item])
+        response = {"ok": True, "measured": False, "checksum": 1234}
+        with mock.patch.object(benchmark, "tool_version", return_value={}), \
+                mock.patch.object(benchmark, "invoke", return_value=response) as invoke, \
+                mock.patch.object(subprocess, "check_output", return_value="{}"):
+            self.assertEqual(self.run_main("--check", "--workloads", str(workloads)), 0)
+        report = json.loads(self.report.read_text(encoding="utf-8"))
+        self.assertEqual(report["workloads"][0]["name"], name)
+        self.assertEqual(report["checks"][0]["workload"], name)
+        self.assertEqual(list(self.report.parent.iterdir()), [self.report])
+        self.assertEqual(invoke.call_count, 2)
+        for call in invoke.call_args_list:
+            self.assertEqual(call.args[0][1:], ["--benchmark-check", "search", "61", "6261", "", "2"])
+        self.assertEqual(report["samples"], [])
 
 
 if __name__ == "__main__":

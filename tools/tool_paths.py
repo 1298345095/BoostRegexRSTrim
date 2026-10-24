@@ -7,7 +7,9 @@ outside their intended directories.
 """
 
 import os
+import json
 from pathlib import Path
+import tempfile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -47,3 +49,21 @@ def report_path(value):
     if path.suffix.lower() != ".json":
         raise ValueError("Generated reports must use a .json filename inside reports/")
     return path
+
+
+def write_json_report(value, report):
+    """Publish complete JSON atomically without following an existing hard link."""
+    destination = report_path(value)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+                                         prefix="report-", suffix=".tmp",
+                                         dir=destination.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(report, stream, indent=2)
+            stream.write("\n")
+        temporary.replace(report_path(destination))
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
